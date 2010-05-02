@@ -29,12 +29,6 @@ struct move
     enum direction direction;
 };
 
-struct move_tree
-{
-    struct move move;
-    struct move_tree * parent;
-};
-
 extern int configuration_length;
 
 bool find_path(struct position * configuration, struct position * end_configuration,
