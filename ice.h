@@ -36,6 +36,8 @@ bool find_path(struct position * configuration, struct position * end_configurat
 
 bool configurations_equal(struct position * first_configuration, struct position * second_configuration);
 
+bool move(const struct position * configuration, enum direction direction, const struct position * position, struct position * next_position);
+
 #endif
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax
