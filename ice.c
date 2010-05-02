@@ -101,6 +101,7 @@ bool move(const struct position * configuration, enum direction direction,
     }
 }
 
+//parallellize easy!!!
 bool configurations_equal(struct position * first_configuration, struct position * second_configuration)
 {
     struct position * first;
@@ -150,7 +151,7 @@ bool is_past_configuration(struct position * configuration)
 
 void add_past_configuration(struct position * configuration)
 {
-    past_configurations_length += configuration_length;
+    ++past_configurations_length;
 
     while (past_configurations_length > past_configurations_capacity)
     {
