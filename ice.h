@@ -23,11 +23,15 @@ struct position
     int y;
 };
 
-struct move_tree
+struct move
 {
     struct position position;
     enum direction direction;
+};
 
+struct move_tree
+{
+    struct move move;
     struct move_tree * parent;
 };
 
