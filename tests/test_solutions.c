@@ -7,8 +7,29 @@
 
 #include "ice.h"
 
-static bool validate_solution()
+static bool validate solution(struct position * configuration, struct move * moves, int num_moves, struct position * end_configuration)
 {
+	struct position * position;
+	for( int i = 0, j; i < num_moves; ++i )
+	{
+		for( j=0; j < configuration_length; ++j )
+		{
+			position = configuration[j];
+			
+			if( *position == moves[i].position )//maybe FIXME; is this comparison accurate?
+			{
+				if( move(configuration, moves[i].direction, position, position) )
+					continue;
+				else
+					return false;
+			}
+		}
+		
+		if ( j== configuration_length )
+			return false;
+	}
+	
+	return configurations_equal(configuration, end_configuration);
 }
 
 int main(int argc, char * argv[])
