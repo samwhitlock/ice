@@ -1,0 +1,5 @@
+.*.swp
+*.o
+/ice
+/tests/test_*
+!/tests/test_*.c
