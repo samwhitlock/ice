@@ -36,6 +36,9 @@ extern int configuration_length;
 extern int moves_length;
 extern struct move * moves;
 
+void initialize_past_configurations();
+void finalize_past_configurations();
+
 bool find_path(struct position * configuration, struct position * end_configuration, int depth);
 
 bool configurations_equal(struct position * first_configuration, struct position * second_configuration);

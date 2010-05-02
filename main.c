@@ -39,6 +39,8 @@ int main(int argc, char * argv[])
 
     configuration_length = start_configuration_length;
 
+    initialize_past_configurations();
+
     if(find_path(start_configuration, end_configuration, 0))
     {
         int index;
@@ -53,5 +55,7 @@ int main(int argc, char * argv[])
     {
         puts("IMPOSSIBLE");
     }
+
+    finalize_past_configurations();
 }
 

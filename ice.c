@@ -27,7 +27,7 @@ int past_configurations_capacity = 0;
 int moves_length;
 struct move * moves;
 
-static void __attribute__((constructor)) initialize_past_configurations()
+void initialize_past_configurations()
 {
     /* Initialize past configuration array */
     past_configurations_capacity = 256;
@@ -35,7 +35,7 @@ static void __attribute__((constructor)) initialize_past_configurations()
         configuration_length * sizeof(struct position));
 }
 
-static void __attribute__((destructor)) finalize_past_configurations()
+void finalize_past_configurations()
 {
     free(past_configurations);
 }
@@ -134,7 +134,7 @@ bool configurations_equal(struct position * first_configuration, struct position
 
 inline struct position * past_configuration(int index)
 {
-    return &past_configurations[index * past_configurations_length];
+    return &past_configurations[index * configuration_length];
 }
 
 bool is_past_configuration(struct position * configuration)
