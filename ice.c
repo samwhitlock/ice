@@ -30,6 +30,7 @@ struct move * moves;
 void initialize_past_configurations()
 {
     /* Initialize past configuration array */
+    past_configurations_length = 0;
     past_configurations_capacity = 256;
     past_configurations = malloc(past_configurations_capacity *
         configuration_length * sizeof(struct position));

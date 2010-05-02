@@ -4,84 +4,100 @@
  */
 
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "ice.h"
+#include "pbm.h"
+#include "test.h"
 
 struct test_case
 {
-	char* init_config_path;
-	char* end_config_path;
+    const char * pbm;
+    bool expected_result;
 };
 
 struct test_case test_cases[] = {
-	{ "pbm/simple_start.pbm", "pbm/simple_end.pbm" }
+    { "simple", true }
 };
+int test_cases_length = sizeof(test_cases) / sizeof(struct test_case);
 
-const char test_cases_length = 1;
-
-static bool validate_solution(struct position * configuration, struct move * moves, int num_moves, struct position * end_configuration)
+static bool validate_solution(struct position * configuration, struct position * end_configuration,
+    struct move * moves, int moves_length)
 {
-	struct position * position;
-	for( int i = 0, j; i < num_moves; ++i )
-	{
-		for( j=0; j < configuration_length; ++j )
-		{
-			position = configuration[j];
-			
-			if( position->x == moves[i].position.x && position->y == moves[i].position.y )
-			{
-				if( move(configuration, moves[i].direction, position, position) )
-					continue;
-				else
-					return false;
-			}
-		}
-		
-		if ( j == configuration_length )
-			return false;
-	}
-	
-	return configurations_equal(configuration, end_configuration);
-}
+    int move_index;
+    int position_index;
+    struct position * position;
 
-bool test_solutions(char* init_file_path, char* end_file_path)//do file IO stuff
-{
-	struct position * start_configuration;
-    struct position * end_configuration;
-    int end_configuration_length;
-    int start_configuration_length;
-	
-    /* Read the PBMs */
-    read_pbm(init_file_path, &start_configuration, &start_configuration_length);
-    read_pbm(end_file_path, &end_configuration, &end_configuration_length);
-	
-    if (start_configuration_length != end_configuration_length)
+    for (move_index = 0; move_index < moves_length; ++move_index)
     {
-        return FALSE;
+        for(position_index = 0; position_index < configuration_length; ++position_index)
+        {
+            position = &configuration[position_index];
+
+            if (position->x == moves[move_index].position.x
+                && position->y == moves[move_index].position.y)
+            {
+                if (move(configuration, moves[move_index].direction, position, position))
+                {
+                    break;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (position_index == configuration_length)
+        {
+            return false;
+        }
     }
-	
-    configuration_length = start_configuration_length;
-	
-	initialize_past_configurations();
-	
-    if(find_path(start_configuration, end_configuration, 0) && validate_solution(start_configuration, moves, moves_length, end_configuration))
-    {
-		finalize_past_configurations();
-		return TRUE;
-    }
-    else
-    {
-		finalize_past_configurations();
-		return FALSE;
-    }
+
+    return configurations_equal(configuration, end_configuration);
 }
 
 int main(int argc, char * argv[])
 {
-	for( int i = 0; i < test_cases_length; ++i )
-	{
-		printf("Test %d: %s\n", i, test_solution(test_cases[i].init_config_path, test_cases[i].end_config_path) ? "SUCCESS" : "FAILURE");
-	}
+    struct position * start_configuration;
+    struct position * end_configuration;
+    int end_configuration_length;
+    int start_configuration_length;
+    int index;
+
+    for (index = 0; index < test_cases_length; ++index)
+    {
+        char pbm_path[256];
+
+        /* Read the PBMs */
+        sprintf(pbm_path, "tests/pbm/%s_start.pbm", test_cases[index].pbm);
+        read_pbm(pbm_path, &start_configuration, &start_configuration_length);
+        sprintf(pbm_path, "tests/pbm/%s_end.pbm", test_cases[index].pbm);
+        read_pbm(pbm_path, &end_configuration, &end_configuration_length);
+
+        if (start_configuration_length != end_configuration_length)
+        {
+            process_result(!test_cases[index].expected_result, test_cases[index].pbm);
+            continue;
+        }
+
+        configuration_length = start_configuration_length;
+
+        initialize_past_configurations();
+
+        if (find_path(start_configuration, end_configuration, 0))
+        {
+            process_result(validate_solution(start_configuration, end_configuration, moves, moves_length) ==
+                test_cases[index].expected_result, test_cases[index].pbm);
+        }
+        else
+        {
+            process_result(!test_cases[index].expected_result, test_cases[index].pbm);
+        }
+    }
+
+    return EXIT_STATUS;
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax

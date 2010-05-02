@@ -6,17 +6,19 @@
 int successes = 0;
 int failures = 0;
 
-#define RUN_TEST(test)              \
-    if (test())                     \
-    {                               \
-        ++successes;                \
-        puts(#test " succeeded");   \
-    }                               \
-    else                            \
-    {                               \
-        ++failures;                 \
-        puts(#test " failed");      \
+void process_result(bool result, const char * test_name)
+{
+    if (result)
+    {
+        ++successes;
+        printf("%s succeeded\n", test_name);
     }
+    else
+    {
+        ++failures;
+        printf("%s failed\n", test_name);
+    }
+}
 
 #define EXIT_STATUS (failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE)
 
