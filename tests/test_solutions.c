@@ -13,6 +13,12 @@ struct test_case
 	char* end_config_path;
 };
 
+struct test_case test_cases[] = {
+	{ "pbm/simple_start.pbm", "pbm/simple_end.pbm" }
+};
+
+const char test_cases_length = 1;
+
 static bool validate_solution(struct position * configuration, struct move * moves, int num_moves, struct position * end_configuration)
 {
 	struct position * position;
@@ -38,39 +44,44 @@ static bool validate_solution(struct position * configuration, struct move * mov
 	return configurations_equal(configuration, end_configuration);
 }
 
-int main(int argc, char * argv[])
+bool test_solutions(char* init_file_path, char* end_file_path)//do file IO stuff
 {
 	struct position * start_configuration;
     struct position * end_configuration;
     int end_configuration_length;
     int start_configuration_length;
 	
-    if (argc != 3)
-    {
-        printf(help_text, argv[0]);
-        return 1;
-    }
-	
     /* Read the PBMs */
-    read_pbm(argv[1], &start_configuration, &start_configuration_length);
-    read_pbm(argv[2], &end_configuration, &end_configuration_length);
+    read_pbm(init_file_path, &start_configuration, &start_configuration_length);
+    read_pbm(end_file_path, &end_configuration, &end_configuration_length);
 	
     if (start_configuration_length != end_configuration_length)
     {
-        puts("IMPOSSIBLE");
-        return 0;
+        return FALSE;
     }
 	
     configuration_length = start_configuration_length;
 	
-    if(find_path(start_configuration, end_configuration, 0) && validate_solution(start_configuration, <#struct move *moves#>, <#int num_moves#>, <#struct position *end_configuration#>))
+	initialize_past_configurations();
+	
+    if(find_path(start_configuration, end_configuration, 0) && validate_solution(start_configuration, moves, moves_length, end_configuration))
     {
-		
+		finalize_past_configurations();
+		return TRUE;
     }
     else
     {
-        puts("IMPOSSIBLE");
+		finalize_past_configurations();
+		return FALSE;
     }
+}
+
+int main(int argc, char * argv[])
+{
+	for( int i = 0; i < test_cases_length; ++i )
+	{
+		printf("Test %d: %s\n", i, test_solution(test_cases[i].init_config_path, test_cases[i].end_config_path) ? "SUCCESS" : "FAILURE");
+	}
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax
