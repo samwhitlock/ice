@@ -194,14 +194,8 @@ bool find_path(struct position * configuration, struct position * end_configurat
             {
                 if(move(configuration, direction, &configuration[index], &next_configuration[index]))
                 {
-                    for (int i = 0; i < depth; ++i) putchar(' ');
-                    printf("%u %u %c - ", configuration[index].x, configuration[index].y,
-                        direction_char[direction]);
-
                     if (!is_past_configuration(next_configuration))
                     {
-                        puts("okay");
-
                         if (find_path(next_configuration, end_configuration, depth + 1))
                         {
                             moves[depth].position = configuration[index];
@@ -209,16 +203,10 @@ bool find_path(struct position * configuration, struct position * end_configurat
                             return true;
                         }
                     }
-                    else
-                    {
-                        puts("already been here");
-                    }
                 }
             }
         }
 
-        for (int i = 0; i < depth; ++i) putchar(' ');
-        puts("dead end");
         return false;
     }
 }
