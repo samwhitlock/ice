@@ -39,8 +39,15 @@ int main(int argc, char * argv[])
 
     configuration_length = start_configuration_length;
 
-    if(find_path(start_configuration, end_configuration, NULL, 0))
+    if(find_path(start_configuration, end_configuration, 0))
     {
+        int index;
+
+        for (index = 0; index < moves_length; ++index)
+        {
+            printf("%u %u %c\n", moves[index].position.x, moves[index].position.y,
+                direction_char[moves[index].direction]);
+        }
     }
     else
     {

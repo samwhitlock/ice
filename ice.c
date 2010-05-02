@@ -24,6 +24,9 @@ struct position * past_configurations = NULL;
 int past_configurations_length = 0;
 int past_configurations_capacity = 0;
 
+int moves_length;
+struct move * moves;
+
 static void __attribute__((constructor)) initialize_past_configurations()
 {
     /* Initialize past configuration array */
@@ -164,13 +167,14 @@ void add_past_configuration(struct position * configuration)
         configuration_length * sizeof(struct position));
 }
 
-bool find_path(struct position * configuration, struct position * end_configuration,
-    struct move_tree * parent_move, int depth)
+bool find_path(struct position * configuration, struct position * end_configuration, int depth)
 {
     if (configurations_equal(configuration, end_configuration))
     {
         /* That's a BINGO! */
         puts("found solution");
+        moves = malloc(depth * sizeof(struct move));
+        moves_length = depth;
         return true;
     }
     else
@@ -197,8 +201,10 @@ bool find_path(struct position * configuration, struct position * end_configurat
                     {
                         puts("okay");
 
-                        if (find_path(next_configuration, end_configuration, NULL, depth + 1))
+                        if (find_path(next_configuration, end_configuration, depth + 1))
                         {
+                            moves[depth].position = configuration[index];
+                            moves[depth].direction = direction;
                             return true;
                         }
                     }

@@ -1,6 +1,6 @@
 # Makefile
 
-CFLAGS = -O2 -g -march=core2 -Wall
+CFLAGS = -O2 -pg -g -march=core2 -Wall
 CC = gcc
 
 CFLAGS := $(CFLAGS) -I. -std=c99

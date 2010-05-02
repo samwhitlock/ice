@@ -29,10 +29,14 @@ struct move
     enum direction direction;
 };
 
+extern char direction_char[];
+
 extern int configuration_length;
 
-bool find_path(struct position * configuration, struct position * end_configuration,
-    struct move_tree * parent_move, int depth);
+extern int moves_length;
+extern struct move * moves;
+
+bool find_path(struct position * configuration, struct position * end_configuration, int depth);
 
 bool configurations_equal(struct position * first_configuration, struct position * second_configuration);
 
