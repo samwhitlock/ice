@@ -1,21 +1,27 @@
 # Makefile
 
-CFLAGS = -O2 -pg -g -march=core2 -Wall -std=c99
+CFLAGS = -O2 -g -march=core2 -Wall
 CC = gcc
+
+CFLAGS := $(CFLAGS) -I. -std=c99
 
 SOURCES = main.c ice.c pbm.c
 OBJECTS = $(SOURCES:.c=.o)
-EXECUTABLE=ice
 
-all: $(SOURCES) $(EXECUTABLE)
+CLEAN_FILES = $(OBJECTS) ice
 
-$(EXECUTABLE): $(OBJECTS)
+ice: $(OBJECTS)
 	$(CC) $(CFLAGS) $(OBJECTS) -o $@
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@
 
-.PHONY : clean
+.PHONY: all
+all: ice
+
+.PHONY: clean
 clean:
-	rm -f $(OBJECTS) $(EXECUTABLE)
+	rm -f $(CLEAN_FILES)
+
+include tests.mk
 
