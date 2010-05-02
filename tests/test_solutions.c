@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "ice.h"
 #include "pbm.h"
@@ -18,7 +19,8 @@ struct test_case
 };
 
 struct test_case test_cases[] = {
-    { "simple", true }
+    { "simple",     true },
+    { "spiral_8",  true }
 };
 int test_cases_length = sizeof(test_cases) / sizeof(struct test_case);
 
@@ -69,6 +71,10 @@ int main(int argc, char * argv[])
     for (index = 0; index < test_cases_length; ++index)
     {
         char pbm_path[256];
+        clock_t start, end;
+        double processor_time;
+
+        start = clock();
 
         /* Read the PBMs */
         sprintf(pbm_path, "tests/pbm/%s_start.pbm", test_cases[index].pbm);
@@ -79,22 +85,28 @@ int main(int argc, char * argv[])
         if (start_configuration_length != end_configuration_length)
         {
             process_result(!test_cases[index].expected_result, test_cases[index].pbm);
-            continue;
-        }
-
-        configuration_length = start_configuration_length;
-
-        initialize_past_configurations();
-
-        if (find_path(start_configuration, end_configuration, 0))
-        {
-            process_result(validate_solution(start_configuration, end_configuration, moves, moves_length) ==
-                test_cases[index].expected_result, test_cases[index].pbm);
         }
         else
         {
-            process_result(!test_cases[index].expected_result, test_cases[index].pbm);
+            configuration_length = start_configuration_length;
+
+            initialize_past_configurations();
+
+            if (find_path(start_configuration, end_configuration, 0))
+            {
+                process_result(validate_solution(start_configuration, end_configuration, moves, moves_length) ==
+                    test_cases[index].expected_result, test_cases[index].pbm);
+            }
+            else
+            {
+                process_result(!test_cases[index].expected_result, test_cases[index].pbm);
+            }
         }
+
+        end = clock();
+
+        processor_time = ((double) (end - start)) / CLOCKS_PER_SEC;
+        printf("\e[1;36m>>\e[0m Running time: %g\n", processor_time);
     }
 
     return EXIT_STATUS;
