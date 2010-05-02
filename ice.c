@@ -5,17 +5,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "ice.h"
 #include "pbm.h"
-
-const char help_text[] =
-    "Usage: %s start.pbm end.pbm\n"
-    "\tThis program will output a series of valid moves to get to the end\n"
-    "\tconfiguration from the start configuration. If this is impossible, the\n"
-    "\tprogram will simply output \"IMPOSSIBLE\".\n";
 
 char direction_char[] = {
     [NORTH] = 'N',
@@ -31,8 +24,18 @@ struct position * past_configurations = NULL;
 int past_configurations_length = 0;
 int past_configurations_capacity = 0;
 
-struct position * start_configuration;
-struct position * end_configuration;
+static void __attribute__((constructor)) initialize_past_configurations()
+{
+    /* Initialize past configuration array */
+    past_configurations_capacity = 256;
+    past_configurations = malloc(past_configurations_capacity *
+        configuration_length * sizeof(struct position));
+}
+
+static void __attribute__((destructor)) finalize_past_configurations()
+{
+    free(past_configurations);
+}
 
 bool move(const struct position * configuration, enum direction direction,
     const struct position * position, struct position * next_position)
@@ -102,10 +105,7 @@ bool configurations_equal(struct position * first_configuration, struct position
 {
     struct position * first;
     struct position * second;
-    bool used_position[configuration_length];
     bool found;
-
-    memset(used_position, 0, sizeof(configuration_length));
 
     for (first = first_configuration; first < first_configuration + configuration_length; ++first)
     {
@@ -113,12 +113,9 @@ bool configurations_equal(struct position * first_configuration, struct position
 
         for (second = second_configuration; second < second_configuration + configuration_length; ++second)
         {
-            if (used_position[second - second_configuration]) continue;
-
             if (first->x == second->x && first->y == second->y)
             {
                 found = true;
-                used_position[second - second_configuration] = true;
             }
         }
 
@@ -166,7 +163,8 @@ void add_past_configuration(struct position * configuration)
         configuration_length * sizeof(struct position));
 }
 
-bool find_path(struct position * configuration, struct move_tree * parent_move, int depth)
+bool find_path(struct position * configuration, struct position * end_configuration,
+    struct move_tree * parent_move, int depth)
 {
     if (configurations_equal(configuration, end_configuration))
     {
@@ -198,7 +196,7 @@ bool find_path(struct position * configuration, struct move_tree * parent_move, 
                     {
                         puts("okay");
 
-                        if (find_path(next_configuration, NULL, depth + 1))
+                        if (find_path(next_configuration, end_configuration, NULL, depth + 1))
                         {
                             return true;
                         }
@@ -214,41 +212,6 @@ bool find_path(struct position * configuration, struct move_tree * parent_move, 
         for (int i = 0; i < depth; ++i) putchar(' ');
         puts("dead end");
         return false;
-    }
-}
-
-int main(int argc, char * argv[])
-{
-    int end_configuration_length;
-
-    if (argc != 3)
-    {
-        printf(help_text, argv[0]);
-        return 1;
-    }
-
-    /* Initialize past configuration array */
-    past_configurations_capacity = 256;
-    past_configurations = malloc(past_configurations_capacity *
-        configuration_length * sizeof(struct position));
-
-    /* Read the PBMs */
-    read_pbm(argv[1], &start_configuration, &configuration_length);
-    read_pbm(argv[2], &end_configuration, &end_configuration_length);
-
-    if (configuration_length != end_configuration_length)
-    {
-        printf("start length: %u, end_length: %u\n", configuration_length, end_configuration_length);
-        puts("IMPOSSIBLE");
-        return 0;
-    }
-
-    if(find_path(start_configuration, NULL, 0))
-    {
-    }
-    else
-    {
-        puts("IMPOSSIBLE");
     }
 }
 

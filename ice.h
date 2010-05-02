@@ -6,6 +6,8 @@
 #ifndef ICE_H
 #define ICE_H 1
 
+#include <stdbool.h>
+
 /* Type definitions */
 enum direction
 {
@@ -28,6 +30,13 @@ struct move_tree
 
     struct move_tree * parent;
 };
+
+extern int configuration_length;
+
+bool find_path(struct position * configuration, struct position * end_configuration,
+    struct move_tree * parent_move, int depth);
+
+bool configurations_equal(struct position * first_configuration, struct position * second_configuration);
 
 #endif
 

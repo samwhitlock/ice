@@ -3,7 +3,7 @@
 CFLAGS = -O2 -pg -g -march=core2 -Wall -std=c99
 CC = gcc
 
-SOURCES = ice.c pbm.c
+SOURCES = main.c ice.c pbm.c
 OBJECTS = $(SOURCES:.c=.o)
 EXECUTABLE=ice
 
