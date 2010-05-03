@@ -38,9 +38,9 @@ int main(int argc, char * argv[])
 {
     configuration_length = 5;
 
-    process_result(test_sorted(), "test_sorted");
-    process_result(test_unsorted(), "test_unsorted");
-    process_result(test_one_different(), "test_one_different");
+    RUN_TEST(test_sorted);
+    RUN_TEST(test_unsorted);
+    RUN_TEST(test_one_different);
 
     return EXIT_STATUS;
 }

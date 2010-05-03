@@ -6,6 +6,8 @@
 int successes = 0;
 int failures = 0;
 
+#define RUN_TEST(test) process_result(test(), #test)
+
 void process_result(bool result, const char * test_name)
 {
     if (result)
