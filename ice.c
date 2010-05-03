@@ -8,7 +8,6 @@
 #include <string.h>
 
 #include "ice.h"
-#include "pbm.h"
 
 char direction_char[] = {
     [NORTH] = 'N',
