@@ -25,8 +25,14 @@ struct position
 
 struct move
 {
-    struct position position;
+    int index;
     enum direction direction;
+};
+
+struct move_tree
+{
+    const struct move_tree * parent;
+    struct move move;
 };
 
 extern char direction_char[];
@@ -36,14 +42,12 @@ extern int configuration_length;
 extern int moves_length;
 extern struct move * moves;
 
-void initialize_past_configurations();
-void finalize_past_configurations();
+bool find_path(struct position * start, struct position * end);
 
-bool find_path(struct position * configuration, struct position * end_configuration, int depth);
+bool configurations_equal(struct position * first, struct position * second);
 
-bool configurations_equal(struct position * first_configuration, struct position * second_configuration);
-
-bool move(const struct position * configuration, enum direction direction, const struct position * position, struct position * next_position);
+bool move(enum direction direction, int move_index,
+    const struct position * current, struct position * next);
 
 #endif
 

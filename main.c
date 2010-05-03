@@ -39,23 +39,12 @@ int main(int argc, char * argv[])
 
     configuration_length = start_configuration_length;
 
-    initialize_past_configurations();
-
-    if(find_path(start_configuration, end_configuration, 0))
+    if(find_path(start_configuration, end_configuration))
     {
-        int index;
-
-        for (index = 0; index < moves_length; ++index)
-        {
-            printf("%u %u %c\n", moves[index].position.x, moves[index].position.y,
-                direction_char[moves[index].direction]);
-        }
     }
     else
     {
         puts("IMPOSSIBLE");
     }
-
-    finalize_past_configurations();
 }
 

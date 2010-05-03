@@ -21,13 +21,15 @@ char direction_char[] = {
 int configuration_length;
 
 struct position * past_configurations = NULL;
+struct position * next_configurations = NULL;
+struct position * current_configurations = NULL;
+
 int past_configurations_length = 0;
 int past_configurations_capacity = 0;
+int next_configurations_length = 0;
 
-int moves_length;
-struct move * moves;
 
-void initialize_past_configurations()
+static void initialize_past_configurations()
 {
     /* Initialize past configuration array */
     past_configurations_length = 0;
@@ -36,73 +38,60 @@ void initialize_past_configurations()
         configuration_length * sizeof(struct position));
 }
 
-void finalize_past_configurations()
+static void finalize_past_configurations()
 {
     free(past_configurations);
 }
 
-bool move(const struct position * configuration, enum direction direction,
-    const struct position * position, struct position * next_position)//this can likely be made much faster with a bit string representation
+bool move(enum direction direction, int move_index,
+    const struct position * current, struct position * next)
 {
+    int index;
     const struct position * other_position;
+    const struct position * current_position;
     const struct position * blocking_position = NULL;
+
+    current_position = &current[move_index];
 
     /* If any of the other bits have a {higher,lower} {x,y} coordinate, this
      * move is valid */
-    for (other_position = configuration; other_position < configuration + configuration_length; ++other_position)
+    for (index = 0; index < configuration_length; ++index)
     {
         /* Skip over the bit we are currently trying to move */
-        if (other_position == position) continue;
+        if (index == move_index) continue;
 
-        if (direction == NORTH)
+        other_position = &current[index];
+
+        if ((direction == NORTH &&
+                current_position->x == other_position->x && current_position->y > other_position->y + 1 &&
+                (!blocking_position || blocking_position->y < current_position->y)) ||
+            (direction == SOUTH &&
+                current_position->x == other_position->x && current_position->y < other_position->y - 1 &&
+                (!blocking_position || blocking_position->y > current_position->y)) ||
+            (direction == WEST &&
+                current_position->y == other_position->y && current_position->x > other_position->x + 1 &&
+                (!blocking_position || blocking_position->x < current_position->x)) ||
+            (direction == EAST &&
+                current_position->y == other_position->y && current_position->x < other_position->x - 1 &&
+                (!blocking_position || blocking_position->x > current_position->x)))
         {
-            if (position->x == other_position->x && position->y > other_position->y + 1 &&
-                (!blocking_position || blocking_position->y < other_position->y))
-            {
-                blocking_position = other_position;
-            }
-        }
-        else if (direction == SOUTH)
-        {
-            if (position->x == other_position->x && position->y < other_position->y - 1 &&
-                (!blocking_position || blocking_position->y > other_position->y))
-            {
-                blocking_position = other_position;
-            }
-        }
-        else if (direction == WEST)
-        {
-            if (position->y == other_position->y && position->x > other_position->x + 1 &&
-                (!blocking_position || blocking_position->x < other_position->x))
-            {
-                blocking_position = other_position;
-            }
-        }
-        else
-        {
-            if (position->y == other_position->y && position->x < other_position->x - 1 &&
-                (!blocking_position || blocking_position->x > other_position->x))
-            {
-                blocking_position = other_position;
-            }
+            blocking_position = other_position;
         }
     }
 
     if (blocking_position)
     {
-        *next_position = *blocking_position;
+        next[move_index] = *blocking_position;
 
-        if (direction == NORTH)         ++next_position->y;
-        else if (direction == SOUTH)    --next_position->y;
-        else if (direction == WEST)     ++next_position->x;
-        else                            --next_position->x;
+        if (direction == NORTH)         ++next[move_index].y;
+        else if (direction == SOUTH)    --next[move_index].y;
+        else if (direction == WEST)     ++next[move_index].x;
+        else                            --next[move_index].x;
 
         return true;
     }
-    else
-    {
-        return false;
-    }
+
+    return false;
 }
 
 bool configurations_equal(struct position * first_configuration, struct position * second_configuration)
@@ -137,13 +126,15 @@ static inline struct position * past_configuration(int index)
     return &past_configurations[index * configuration_length];
 }
 
-bool is_past_configuration(struct position * configuration)
+bool is_past_configuration(struct position * current)
 {
-    int index;
+    struct position * past;
 
-    for (index = 0; index < past_configurations_length; ++index)
+    for (past = past_configurations;
+        past < past_configurations + past_configurations_length;
+        past += configuration_length)
     {
-        if (configurations_equal(configuration, past_configuration(index)))
+        if (configurations_equal(current, past))
         {
             return true;
         }
@@ -152,65 +143,119 @@ bool is_past_configuration(struct position * configuration)
     return false;
 }
 
-void add_past_configurations(struct position * configuration)
+void add_past_configuration(struct position * configuration)
 {
     #pragma omp critical//TODO: Make me thread safe!
     {
         ++past_configurations_length;
-        
-        if( past_configurations_length > past_configurations_capacity )
+
+        if (past_configurations_length > past_configurations_capacity)
         {
             past_configurations_capacity *= 2;
-            
+
             past_configurations = realloc(past_configurations,
                 past_configurations_capacity * configuration_length * sizeof(struct position));
         }
 
-        memcpy(past_configuration(past_configurations_length - length), configuration,
-            configuration_length * length * sizeof(struct position));
+        memcpy(past_configuration(past_configurations_length - 1), configuration,
+            configuration_length * sizeof(struct position));
     }
 }
 
-bool find_path(struct position * configuration, struct position * end_configuration, int depth)
+void print_configuration(struct position * configuration)
 {
-    if (configurations_equal(configuration, end_configuration))
+    int index = 0;
+
+    printf("{ ");
+    for (index = 0; index < configuration_length; ++index)
     {
-        /* That's a BINGO! */
-        moves = malloc(depth * sizeof(struct move));
-        moves_length = depth;
-        return true;
+        printf("(%u, %u) ", configuration[index].x, configuration[index].y);
     }
-    else
+    printf("}\n");
+}
+
+bool find_path(struct position * start, struct position * end)
+{
+    struct position * current;
+    struct position * position;
+    struct position next[configuration_length];
+    enum direction direction;
+    bool found = false;
+
+    initialize_past_configurations();
+
+    add_past_configuration(start);
+
+    current_configurations = past_configurations;
+    next_configurations = past_configurations + configuration_length;
+
+    while (true)
     {
-        int index = 0;
-        enum direction direction;
-        struct position next_configuration[configuration_length];
+        next_configurations_length = 0;
 
-        add_past_configuration(configuration);
-
-        for (index = 0; index < configuration_length; ++index)
+        for (current = current_configurations;
+            current < next_configurations;
+            current += configuration_length)
         {
-            memcpy(next_configuration, configuration, configuration_length * sizeof(struct position));
-
-            for (direction = NORTH; direction <= WEST; ++direction)
+            print_configuration(current);
+            for (position = current; position < current + configuration_length; ++position)
             {
-                if(move(configuration, direction, &configuration[index], &next_configuration[index]))
+                memcpy(next, current, configuration_length * sizeof(struct position));
+
+                for (direction = NORTH; direction <= WEST; ++direction)
                 {
-                    if (!is_past_configuration(next_configuration))
+                    printf("%u %u %c - ", position->x, position->y, direction_char[direction]);
+
+                    if (move(direction, position - current, current, next))
                     {
-                        if (find_path(next_configuration, end_configuration, depth + 1))
+                        if (!is_past_configuration(next))
                         {
-                            moves[depth].position = configuration[index];
-                            moves[depth].direction = direction;
-                            return true;
+                            printf("okay, next: ");
+                            print_configuration(next);
+
+                            if (configurations_equal(next, end))
+                            {
+                                puts("found solution");
+                                found = true;
+                                break;
+                            }
+
+                            ++next_configurations_length;
+                            add_past_configuration(next);
+                        }
+                        else
+                        {
+                            puts("already been here");
                         }
                     }
+                    else
+                    {
+                        puts("invalid move");
+                    }
                 }
+
+                if (found) break;
             }
+
+            if (found) break;
+            puts("---");
         }
 
-        return false;
+        if (found) break;
+        puts("===");
+
+        if (next_configurations_length == 0)
+        {
+            break;
+        }
+
+        current_configurations = next_configurations;
+        next_configurations += configuration_length * next_configurations_length;
     }
+
+    finalize_past_configurations();
+
+    return found;
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax
