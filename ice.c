@@ -152,18 +152,15 @@ bool is_past_configuration(struct position * configuration)
     return false;
 }
 
-void add_past_configurations(struct position * configuration, int length)
+void add_past_configurations(struct position * configuration)
 {
-    #pragma omp critical
+    #pragma omp critical//TODO: Make me thread safe!
     {
-        past_configurations_length += length;
+        ++past_configurations_length;
         
         if( past_configurations_length > past_configurations_capacity )
         {
-            while (past_configurations_length > past_configurations_capacity)
-            {
-                past_configurations_capacity *= 2;
-            }
+            past_configurations_capacity *= 2;
             
             past_configurations = realloc(past_configurations,
                 past_configurations_capacity * configuration_length * sizeof(struct position));
