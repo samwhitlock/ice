@@ -9,11 +9,8 @@ TESTS = $(TEST_SOURCES:.c=)
 
 CLEAN_FILES := $(CLEAN_FILES) $(TESTS) $(TEST_OBJECTS)
 
-tests/test_%.o: tests/test_%.c
-	$(CC) -c $(CFLAGS) $< -o $@
-
 tests/test_%: $(filter-out main.o,$(OBJECTS)) tests/test_%.o
-	$(CC) $(CFLAGS) $+ -o $@
+	$(CC) $(EXTRA_LDFLAGS) $+ -o $@
 
 .PHONY: check
 check: all $(TESTS)
