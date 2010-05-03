@@ -176,7 +176,6 @@ bool find_path(struct position * configuration, struct position * end_configurat
     if (configurations_equal(configuration, end_configuration))
     {
         /* That's a BINGO! */
-        puts("found solution");
         moves = malloc(depth * sizeof(struct move));
         moves_length = depth;
         return true;
