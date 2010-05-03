@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <omp.h>
 
 #include "ice.h"
 
@@ -41,7 +42,7 @@ void finalize_past_configurations()
 }
 
 bool move(const struct position * configuration, enum direction direction,
-    const struct position * position, struct position * next_position)
+    const struct position * position, struct position * next_position)//this can likely be made much faster with a bit string representation
 {
     const struct position * other_position;
     const struct position * blocking_position = NULL;
@@ -104,7 +105,6 @@ bool move(const struct position * configuration, enum direction direction,
     }
 }
 
-//parallellize easy!!!
 bool configurations_equal(struct position * first_configuration, struct position * second_configuration)
 {
     struct position * first;
