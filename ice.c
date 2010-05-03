@@ -105,18 +105,16 @@ bool move(const struct position * configuration, enum direction direction,
     }
 }
 
-//parallellize easy!!!
 bool configurations_equal(struct position * first_configuration, struct position * second_configuration)
 {
     struct position * first;
     struct position * second;
-    bool found;
+    bool same = true, found;
 
-    for (first = first_configuration; first < first_configuration + configuration_length; ++first)
+    #pragma omp parallel for shared(same, first_configuration, second_configuration) private(found)
+    for (first = first_configuration, found = false; first < first_configuration + configuration_length && same; ++first)
     {
-        found = false;
-
-        for (second = second_configuration; second < second_configuration + configuration_length; ++second)
+        for (second = second_configuration; second < second_configuration + configuration_length && !found; ++second)
         {
             if (first->x == second->x && first->y == second->y)
             {
@@ -126,11 +124,12 @@ bool configurations_equal(struct position * first_configuration, struct position
 
         if (!found)
         {
-            return false;
+            #pragma omp atomic
+                same = false;
         }
     }
 
-    return true;
+    return same;
 }
 
 inline struct position * past_configuration(int index)
