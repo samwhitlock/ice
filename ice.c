@@ -132,7 +132,7 @@ bool configurations_equal(struct position * first_configuration, struct position
     return same;
 }
 
-inline struct position * past_configuration(int index)
+static inline struct position * past_configuration(int index)
 {
     return &past_configurations[index * configuration_length];
 }
