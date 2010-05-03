@@ -152,19 +152,26 @@ bool is_past_configuration(struct position * configuration)
     return false;
 }
 
-void add_past_configuration(struct position * configuration)
+void add_past_configurations(struct position * configuration, int length)
 {
-    ++past_configurations_length;
-
-    while (past_configurations_length > past_configurations_capacity)
+    #pragma omp critical
     {
-        past_configurations_capacity *= 2;
-        past_configurations = realloc(past_configurations,
-            past_configurations_capacity * configuration_length * sizeof(struct position));
-    }
+        past_configurations_length += length;
+        
+        if( past_configurations_length > past_configurations_capacity )
+        {
+            while (past_configurations_length > past_configurations_capacity)
+            {
+                past_configurations_capacity *= 2;
+            }
+            
+            past_configurations = realloc(past_configurations,
+                past_configurations_capacity * configuration_length * sizeof(struct position));
+        }
 
-    memcpy(past_configuration(past_configurations_length - 1), configuration,
-        configuration_length * sizeof(struct position));
+        memcpy(past_configuration(past_configurations_length - length), configuration,
+            configuration_length * length * sizeof(struct position));
+    }
 }
 
 bool find_path(struct position * configuration, struct position * end_configuration, int depth)
