@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <omp.h>
 
 #include "ice.h"
 
@@ -142,19 +141,15 @@ bool is_past_configuration(struct position * configuration)
 {
     int index;
 
-    bool found = false;
-
-    #pragma omp parallel for shared(index, found)
-    for (index = 0; index < past_configurations_length && !found; ++index)
-    {   
+    for (index = 0; index < past_configurations_length; ++index)
+    {
         if (configurations_equal(configuration, past_configuration(index)))
         {
-            #pragma omp atomic
-                found = true;
+            return true;
         }
     }
 
-    return found;
+    return false;
 }
 
 void add_past_configuration(struct position * configuration)
