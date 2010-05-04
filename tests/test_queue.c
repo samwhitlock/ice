@@ -26,6 +26,8 @@ static bool test_queue()
     if (queue_pop(&queue) != (void *) 7) return false;
     if (queue_pop(&queue) != (void *) 9) return false;
 
+    if (!(queue.size == 0)) return false;
+
     return true;
 }
 
