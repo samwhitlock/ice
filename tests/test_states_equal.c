@@ -10,36 +10,27 @@
 #include "test.h"
 #include "ice.h"
 
-static bool test_sorted()
+static bool test_equal()
 {
-    struct position first[]     = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
-    struct position second[]    = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
-
-    return states_equal(first, second);
-}
-
-static bool test_unsorted()
-{
-    struct position first[]     = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
-    struct position second[]    = { { 3, 2 }, { 5, 0 }, { 1, 0 }, { 1, 7 }, { 0, 0 } };
+    uint32_t first[]    = { 0xdead, 0xbeef };
+    uint32_t second[]   = { 0xdead, 0xbeef };
 
     return states_equal(first, second);
 }
 
 static bool test_one_different()
 {
-    struct position first[]     = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
-    struct position second[]    = { { 0, 0 }, { 4, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
+    uint32_t first[]    = { 0xdead1234, 0xbeef5678 };
+    uint32_t second[]   = { 0xdfad1234, 0xbeef5678 };
 
     return !states_equal(first, second);
 }
 
 int main(int argc, char * argv[])
 {
-    state_length = 5;
+    state_size = 8;
 
-    RUN_TEST(test_sorted);
-    RUN_TEST(test_unsorted);
+    RUN_TEST(test_equal);
     RUN_TEST(test_one_different);
 
     return EXIT_STATUS;
