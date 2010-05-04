@@ -1,6 +1,6 @@
 # Makefile
 
-CFLAGS = -O2 -march=core2 -Wall
+CFLAGS = -g -O2 -march=core2 -Wall
 CC = gcc
 
 EXTRA_CFLAGS = -fopenmp -std=c99 -I.
