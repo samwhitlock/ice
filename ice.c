@@ -12,6 +12,7 @@
 
 #include "ice.h"
 #include "queue.h"
+#include "bit_twiddle.h"
 
 #ifdef DEBUG
 #define DEBUG_PRINT(format, args...) printf(format, ## args)
@@ -27,7 +28,7 @@ char direction_char[] = {
 };
 
 /* The number of positions that compose a state of the bits */
-int state_length;
+int state_length, state_height, state_width;
 
 struct position * past_states = NULL;
 struct move_tree * move_tree = NULL;
@@ -128,7 +129,7 @@ bool states_equal(struct position * first_state, struct position * second_state)
     return true;
 }
 
-unsigned int calculate_score(struct position * first_state, struct position * second_state)
+unsigned int calculate_score(uint32_t * first_state, uint32_t * second_state)
 {
     if (states_equal(first_state, second_state))
     {

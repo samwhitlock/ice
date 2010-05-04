@@ -43,6 +43,8 @@ struct move_tree
 
 /********** Variable Declarations **********/
 extern char direction_char[];
+extern int state_height;
+extern int state_width;
 extern int state_length;
 
 /********** Function Declarations **********/
@@ -70,7 +72,7 @@ bool states_equal(struct position * first, struct position * second);
  *
  * @return The calculated score for a set of positions.
  */
-unsigned int calculate_score(struct position * state, struct position * end_state);
+unsigned int calculate_score(uint32_t * first_state, uint32_t * second_state);
 
 bool move(enum direction direction, int move_index,
     const struct position * current, struct position * next);

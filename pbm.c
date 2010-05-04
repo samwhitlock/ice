@@ -8,26 +8,24 @@
 
 #include "pbm.h"
 
+extern int state_width, state_height;
+
 void read_pbm(const char const * filename, struct position ** configuration, int * length)
 {
     FILE * file;
-    int x;
-    int y;
-    int width;
-    int height;
-    int index;
+    int x, y, index;
 
     file = fopen(filename, "r");
 
-    fscanf(file, "P1 %d %d\n", &width, &height);
+    fscanf(file, "P1 %d %d\n", &state_width, &state_height);
 
     /* There are at most width * height set bits */
-    *configuration = malloc(width * height * sizeof(struct position));
+    *configuration = malloc(state_width * state_height * sizeof(struct position));
     index = 0;
 
-    for (y = 0; y < height; ++y)
+    for (y = 0; y < state_height; ++y)
     {
-        for (x = 0; x < width; ++x)
+        for (x = 0; x < state_width; ++x)
         {
             if (getc(file) == '1')
             {
