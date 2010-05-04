@@ -61,7 +61,7 @@ bool find_path(struct position * start, struct position * end);
  *
  * @return True if the states are equal, false otherwise.
  */
-bool states_equal(struct position * first, struct position * second);
+bool states_equal(uint32_t * first, uint32_t * second);
 
 /**
  * Calculates the score for a set of positions.

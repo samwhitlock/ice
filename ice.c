@@ -102,31 +102,9 @@ bool move(enum direction direction, int move_index,
     return false;
 }
 
-bool states_equal(struct position * first_state, struct position * second_state)
+bool states_equal(uint32_t * first, uint32_t * second)
 {
-    struct position * first;
-    struct position * second;
-    bool found;
-
-    for (first = first_state; first < first_state + state_length; ++first)
-    {
-        found = false;
-
-        for (second = second_state; second < second_state + state_length; ++second)
-        {
-            if (first->x == second->x && first->y == second->y)
-            {
-                found = true;
-            }
-        }
-
-        if (!found)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return memcmp(first, second, state_size);
 }
 
 unsigned int calculate_score(uint32_t * first_state, uint32_t * second_state)
