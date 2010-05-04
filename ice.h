@@ -35,10 +35,10 @@ struct position
 
 struct move_tree
 {
-    struct position * position;
+    struct position position;
     enum direction direction;
     struct move_tree * parent;
-    u_int32_t state[];
+    uint32_t state[];
 };
 
 /********** Variable Declarations **********/
