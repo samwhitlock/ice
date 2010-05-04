@@ -1,4 +1,4 @@
-/* tests/test_configurations_equal.c
+/* tests/test_states_equal.c
  *
  * Copyright (c) 2010 Michael Forney
  */
@@ -15,7 +15,7 @@ static bool test_sorted()
     struct position first[]     = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
     struct position second[]    = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
 
-    return configurations_equal(first, second);
+    return states_equal(first, second);
 }
 
 static bool test_unsorted()
@@ -23,7 +23,7 @@ static bool test_unsorted()
     struct position first[]     = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
     struct position second[]    = { { 3, 2 }, { 5, 0 }, { 1, 0 }, { 1, 7 }, { 0, 0 } };
 
-    return configurations_equal(first, second);
+    return states_equal(first, second);
 }
 
 static bool test_one_different()
@@ -31,12 +31,12 @@ static bool test_one_different()
     struct position first[]     = { { 0, 0 }, { 1, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
     struct position second[]    = { { 0, 0 }, { 4, 0 }, { 5, 0 }, { 3, 2 }, { 1, 7 } };
 
-    return !configurations_equal(first, second);
+    return !states_equal(first, second);
 }
 
 int main(int argc, char * argv[])
 {
-    configuration_length = 5;
+    state_length = 5;
 
     RUN_TEST(test_sorted);
     RUN_TEST(test_unsorted);

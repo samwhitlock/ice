@@ -1,8 +1,8 @@
 # tests.mk
 
 TEST_SOURCES = \
-	tests/test_configurations_equal.c \
-	tests/test_solutions.c
+	tests/test_states_equal.c \
+	tests/test_queue.c
 
 TEST_OBJECTS = $(TEST_SOURCES:.c=.o)
 TESTS = $(TEST_SOURCES:.c=)

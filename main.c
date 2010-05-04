@@ -16,10 +16,10 @@ const char help_text[] =
 
 int main(int argc, char * argv[])
 {
-    struct position * start_configuration;
-    struct position * end_configuration;
-    int end_configuration_length;
-    int start_configuration_length;
+    struct position * start_state;
+    struct position * end_state;
+    int start_state_length;
+    int end_state_length;
 
     if (argc != 3)
     {
@@ -28,18 +28,18 @@ int main(int argc, char * argv[])
     }
 
     /* Read the PBMs */
-    read_pbm(argv[1], &start_configuration, &start_configuration_length);
-    read_pbm(argv[2], &end_configuration, &end_configuration_length);
+    read_pbm(argv[1], &start_state, &start_state_length);
+    read_pbm(argv[2], &end_state, &end_state_length);
 
-    if (start_configuration_length != end_configuration_length)
+    if (start_state_length != end_state_length)
     {
         puts("IMPOSSIBLE");
         return 0;
     }
 
-    configuration_length = start_configuration_length;
+    state_length = start_state_length;
 
-    if(find_path(start_configuration, end_configuration))
+    if(find_path(start_state, end_state))
     {
     }
     else

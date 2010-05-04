@@ -8,8 +8,13 @@
 #define ICE_H 1
 
 #include <stdbool.h>
+#include <stdlib.h>
 
-/* Type definitions */
+/********** Type Definitions **********/
+
+/**
+ * A direction is the possible directions a bit can move.
+ */
 enum direction
 {
     NORTH,
@@ -18,34 +23,52 @@ enum direction
     WEST
 };
 
+/**
+ * A position is the coordinates on the board of a bit.
+ */
 struct position
 {
     int x;
     int y;
 };
 
-struct move
-{
-    int index;
-    enum direction direction;
-};
-
 struct move_tree
 {
-    const struct move_tree * parent;
-    struct move move;
+    struct position * position;
+    enum direction direction;
+    struct move_tree * parent;
 };
 
+/********** Variable Declarations **********/
 extern char direction_char[];
+extern int state_length;
 
-extern int configuration_length;
+/********** Function Declarations **********/
 
-extern int moves_length;
-extern struct move * moves;
-
+/**
+ * Attempts to find a series of moves to get from start to end.
+ *
+ * @return True if a solution exists, false otherwise.
+ */
 bool find_path(struct position * start, struct position * end);
 
-bool configurations_equal(struct position * first, struct position * second);
+/**
+ * Compares two states.
+ *
+ * @return True if the states are equal, false otherwise.
+ */
+bool states_equal(struct position * first, struct position * second);
+
+/**
+ * Calculates the score for a set of positions.
+ *
+ * A high score indicates that this set is far off from the correct answer, a
+ * low score indicates that that it is close, with a score of 0 indicating that
+ * this is the correct solution.
+ *
+ * @return The calculated score for a set of positions.
+ */
+unsigned int calculate_score(struct position * state, struct position * end_state);
 
 bool move(enum direction direction, int move_index,
     const struct position * current, struct position * next);

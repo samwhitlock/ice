@@ -6,7 +6,11 @@ CC = gcc
 EXTRA_CFLAGS = -fopenmp -std=c99 -I.
 EXTRA_LDFLAGS = -fopenmp
 
-SOURCES = main.c ice.c pbm.c
+ifeq ($(DEBUG), 1)
+EXTRA_CFLAGS := $(EXTRA_CFLAGS) -DDEBUG
+endif
+
+SOURCES = main.c ice.c pbm.c queue.c
 OBJECTS = $(SOURCES:.c=.o)
 
 CLEAN_FILES = $(OBJECTS) ice
