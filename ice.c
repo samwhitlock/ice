@@ -207,7 +207,7 @@ bool find_path(struct position * start_state, struct position * end_state)
 
     add_branch(start_state, NULL, 0, 0);
 
-    #pragma omp parallel
+    #pragma omp parallel shared(found, done)
     {
         struct position * state;
         struct position * position;
