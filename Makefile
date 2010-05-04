@@ -17,6 +17,7 @@ ice: $(OBJECTS)
 %.o: %.c Makefile
 	$(CC) $(EXTRA_CFLAGS) $(CFLAGS) -c $< -o $@
 
+# Dependencies {{{
 .deps/%.d: %.c $(global_deps)
 	@set -e; rm -f $@; mkdir -p $$(dirname $@) ; \
 	$(CC) -M $(CPPFLAGS) $(FINAL_CFLAGS) $< > $@.$$$$ 2>/dev/null ; \
@@ -25,6 +26,9 @@ ice: $(OBJECTS)
 
 DEPS := $(SOURCES:%.c=.deps/%.d)
 -include $(DEPS)
+# }}}
+
+include tests.mk
 
 .PHONY: all
 all: ice
@@ -33,5 +37,5 @@ all: ice
 clean:
 	rm -f $(CLEAN_FILES)
 
-include tests.mk
+# vim: set fdm=marker
 

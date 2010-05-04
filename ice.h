@@ -1,6 +1,7 @@
 /* ice.h
  *
  * Copyright (c) 2010 Michael Forney
+ * Copyright (c) 2010 Sam Whitlock
  */
 
 #ifndef ICE_H
