@@ -109,14 +109,14 @@ bool states_equal(uint32_t * first, uint32_t * second)
 
 unsigned int calculate_score(uint32_t * first_state, uint32_t * second_state)
 {
-    if (states_equal(first_state, second_state))
-    {
-        return 0;
+    unsigned int num_bits_set = 0;
+    uint32_t temp;
+    for (int i = 0; i < state_size / 4; ++i) {
+        temp = first_state[i] ^ second_state[i];
+        num_bits_sets += bits_set(temp);
     }
-    else
-    {
-        return 1;
-    }
+    
+    return num_bits_set;
 }
 
 static inline struct position * past_state(int index)
