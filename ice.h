@@ -9,6 +9,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 /********** Type Definitions **********/
 
@@ -35,9 +36,9 @@ struct position
 struct move_tree
 {
     struct position * position;
-    int state[];
     enum direction direction;
     struct move_tree * parent;
+    u_int32_t state[];
 };
 
 /********** Variable Declarations **********/
