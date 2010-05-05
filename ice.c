@@ -79,7 +79,7 @@ static inline int get_bit(const uint32_t * bit_str, int offset)
 
 static inline uint32_t mask(const struct position * position, enum flip flp)
 {
-    uint32_t ret_num = 0x80000000 >> (position->x % 32);
+    uint32_t ret_num = 1 << (position->x % 32);
     return flp == ON ? ret_num : ~ret_num;
 }
 
@@ -104,8 +104,12 @@ static inline void move_bit(uint32_t * state, const struct position * initial_po
     printf("Moving bit at (%d,%d) to (%d, %d)\n", initial_position->x, initial_position->y, final_position->x, final_position->y);
     
     int initial_offset = offset(initial_position), final_offset = offset(final_position);
-    state[initial_offset] = state[initial_offset] & mask(initial_position, OFF);
-    state[final_offset] = state[final_offset] | mask(final_position, ON);
+    uint32_t off_mask = mask(initial_position, OFF), on_mask = mask(final_position, ON);
+    printf("My OFF mask: %x\nMy ON mask: %x\n", off_mask, on_mask);
+    state[initial_offset] = state[initial_offset] & off_mask;
+    state[final_offset] = state[final_offset] | on_mask;
+    printf("State right after move_bit\n");
+    print_state(state);
 }
 
 bool horizontal_seek(enum direction direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
@@ -120,16 +124,17 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
             //some sort of prefetch can be added
             if(first)
             {
-               lz = leading_zeros(state[offset_index] << (32 - (current_position->x % 32)));
+               lz = leading_zeros(state[offset_index] << (current_position->x % 32));
                 
                 if (lz < 32)
                 {
                     block_position->y=current_position->y;
                     block_position->x=current_position->x - (lz + 1);
+                    printf("found bit in position %d moving WEST from (%d,%d)\n", block_position->x, current_position->x, current_position->y);
                     return true;
                 } else
                 {   
-                    pos_offset += leading_zeros(state[offset_index]);
+                    pos_offset += trailing_zeros(state[offset_index]);
                     first = false;
                 }
             } else
@@ -140,6 +145,7 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
                     //it's found
                     block_position->y=current_position->y;
                     block_position->x=current_position->x - (pos_offset+lz+1);
+                    printf("found bit in position %d moving WEST from (%d,%d)\n", block_position->x, current_position->x, current_position->y);
                     return true;
                 }
                 
@@ -154,16 +160,17 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
             //some sort of prefetch can be added
             if(first)
             {
-                tz = trailing_zeros(state[offset_index] >> (current_position->y % 32));
-                
+                tz = trailing_zeros(state[offset_index] >> (current_position->x % 32));
+                printf("trailing zeros: %d\n", tz);
                 if (tz < 32)
                 {
                     block_position->y=current_position->y;
                     block_position->x=current_position->x + (tz + 1);
+                    printf("found bit in position %d moving EAST from (%d,%d)\n", block_position->x, current_position->x, current_position->y);
                     return true;
                 } else
                 {
-                    pos_offset += trailing_zeros(state[offset_index]);
+                    pos_offset += leading_zeros(state[offset_index]);
                     first = false;
                 }
             } else
@@ -174,6 +181,7 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
                     //it's found!!!
                     block_position->y=current_position->y;
                     block_position->x=current_position->x + (pos_offset+tz+1);
+                    printf("found bit in position %d moving EAST from (%d,%d)\n", block_position->x, current_position->x, current_position->y);
                     return true;
                 }
                 
@@ -187,8 +195,6 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
 
 bool vertical_seek(enum direction direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
 {
-    printf("I'm searching in this state:\n");
-    print_state(state);
     int mod_cp = (current_position->x) % 32;
     if (direction == NORTH)
     {
@@ -197,9 +203,12 @@ bool vertical_seek(enum direction direction, const uint32_t * state, const struc
             printf("getting bit at (%d, %d)\n", current_position->x, y);
             if (get_bit(&state[j], mod_cp)==1)
             {
-                block_position->x = current_position->x;
-                block_position->y = y+1;
-                return true;
+                if (y+1 != current_position->y)
+                {
+                    block_position->x = current_position->x;
+                    block_position->y = y+1;
+                    return true;
+                } else return false;
             }
         }
     } else //direction == SOUTH
@@ -209,9 +218,12 @@ bool vertical_seek(enum direction direction, const uint32_t * state, const struc
             printf("getting bit at (%d, %d)\n", current_position->x, y);
             if (get_bit(&state[j], mod_cp)==1)
             {
-                block_position->x = current_position->x;
-                block_position->y = y-1;
-                return true;
+                if (y-1 != current_position->y)
+                {
+                    block_position->x = current_position->x;
+                    block_position->y = y-1;
+                    return true;
+                } else return false;
             }
         }
     }
