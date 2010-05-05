@@ -32,7 +32,7 @@ char direction_char[] = {
 
 enum flip
 {
-    OFF,
+    OFF = 0,
     ON
 };
 
@@ -112,12 +112,12 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
     if( direction == WEST )
     {
         unsigned int lz;
-        for (int i = horizontal_offset(current_position->x), offset = 0; i >= 0; --i)
+        for (int horiz_offset = horizontal_offset(current_position->x), offset_index = offset(current_position), pos_offset = 0; horiz_offset >= 0; --horiz_offset, --offset_index)
         {
             //some sort of prefetch can be added
             if(first)
             {
-               lz = leading_zeros(state[i] << (32 - (current_position->x % 32)));
+               lz = leading_zeros(state[offset_index] << (32 - (current_position->x % 32)));
                 
                 if (lz < 32)
                 {
@@ -126,32 +126,32 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
                     return true;
                 } else
                 {   
-                    offset += leading_zeros(state[i]);
+                    pos_offset += leading_zeros(state[offset_index]);
                     first = false;
                 }
             } else
             { 
-                lz = leading_zeros(state[i]);
+                lz = leading_zeros(state[offset_index]);
                 if (lz < 32)
                 {
                     //it's found
                     block_position->y=current_position->y;
-                    block_position->x=current_position->x - (offset+lz+1);
+                    block_position->x=current_position->x - (pos_offset+lz+1);
                     return true;
                 }
                 
-                offset += 32;
+                pos_offset += 32;
             }
         }
     } else //direction == EAST
     {
         unsigned int tz;
-        for (int i = horizontal_offset(current_position->x), offset = 0; i < ints_per_row; ++i)
+        for (int horiz_offset = horizontal_offset(current_position->x), offset_index = offset(current_position), pos_offset = 0; horiz_offset < ints_per_row; ++horiz_offset, ++offset_index)
         {
             //some sort of prefetch can be added
             if(first)
             {
-                tz = trailing_zeros(state[i] >> (current_position->y % 32));
+                tz = trailing_zeros(state[offset_index] >> (current_position->y % 32));
                 
                 if (tz < 32)
                 {
@@ -160,21 +160,21 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
                     return true;
                 } else
                 {
-                    offset += trailing_zeros(state[i]);
+                    pos_offset += trailing_zeros(state[offset_index]);
                     first = false;
                 }
             } else
             {
-                tz = trailing_zeros(state[i]);
+                tz = trailing_zeros(state[offset_index]);
                 if (tz < 32)
                 {
                     //it's found!!!
                     block_position->y=current_position->y;
-                    block_position->x=current_position->x + (offset+tz+1);
+                    block_position->x=current_position->x + (pos_offset+tz+1);
                     return true;
                 }
                 
-                offset += 32;
+                pos_offset += 32;
             }
         }
     }
