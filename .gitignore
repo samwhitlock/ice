@@ -5,3 +5,4 @@
 /tests/test_*
 !/tests/test_*.c
 /gmon.out
+/.deps
