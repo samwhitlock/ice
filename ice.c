@@ -191,7 +191,7 @@ bool move(enum direction direction, const struct position * position,
                 }
             }
         }
-        else
+        else//directino == WEST
         {
             //first stuff
             bitSet = state[state_offset] << (32 - init_index);
@@ -205,7 +205,7 @@ bool move(enum direction direction, const struct position * position,
                 } else 
                 {
 
-                    bit_offset += leading_zeros(bitSet);
+                    bit_offset -= leading_zeros(bitSet);
                     memcpy(next_state, state, state_size);
                     state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
                     return true;
@@ -222,12 +222,12 @@ bool move(enum direction direction, const struct position * position,
                 if(bitSet != 0)
                 {
                     //found!
-                    bit_offset += leading_zeros(bitSet);
+                    bit_offset -= leading_zeros(bitSet);
                     memcpy(next_state, state, state_size);
                     state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
                     return true;
                 } else {
-                    bit_offset += 32;
+                    bit_offset -= 32;
                 }
             }
         }
