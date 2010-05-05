@@ -323,7 +323,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
             /* Wait until we have something to do */
             while (queues[omp_get_thread_num()].size == 0 && !done)
             {
-                #pragma omp flush(queues)
+                #pragma omp flush(queues, done)
 
 /*
                 if (threads_waiting == omp_get_num_threads())
