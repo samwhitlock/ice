@@ -45,7 +45,7 @@ struct move_tree
 extern char direction_char[];
 extern int state_height;
 extern int state_width;
-extern int state_length;
+extern size_t state_size;
 
 /********** Function Declarations **********/
 
@@ -54,14 +54,14 @@ extern int state_length;
  *
  * @return True if a solution exists, false otherwise.
  */
-bool find_path(struct position * start, struct position * end);
+bool find_path(const uint32_t * start, const uint32_t * end);
 
 /**
  * Compares two states.
  *
  * @return True if the states are equal, false otherwise.
  */
-bool states_equal(uint32_t * first, uint32_t * second);
+bool states_equal(const uint32_t * first, const uint32_t * second);
 
 /**
  * Calculates the score for a set of positions.
@@ -72,10 +72,10 @@ bool states_equal(uint32_t * first, uint32_t * second);
  *
  * @return The calculated score for a set of positions.
  */
-unsigned int calculate_score(uint32_t * first_state, uint32_t * second_state);
+unsigned int calculate_score(const uint32_t * first_state, const uint32_t * second_state);
 
-bool move(enum direction direction, int move_index,
-    const struct position * current, struct position * next);
+bool move(enum direction direction, struct position * position,
+    const uint32_t * current_state, uint32_t * next_state);
 
 #endif
 

@@ -34,40 +34,69 @@ enum flip
 };
 
 /* The number of positions that compose a state of the bits */
-int state_length, state_height, state_width;
+int state_height;
+int state_width;
+size_t state_size;
 
-struct position * past_states = NULL;
+int ints_per_row;
+int ints_per_state;
+
 struct move_tree * move_tree = NULL;
+int move_tree_length;
+int move_tree_capacity;
 
-int branches_length = 0;
-int branches_capacity = 0;
-
-static void initialize_branches()
+static void initialize_move_tree()
 {
     /* Initialize past states array */
-    branches_length = 0;
-    branches_capacity = 1024 * 1024;
-    past_states = malloc(branches_capacity * state_length * sizeof(struct position));
-    move_tree = malloc(branches_capacity * sizeof(struct move_tree));
+    move_tree_length = 0;
+    move_tree_capacity = 1024 * 1024;
+    move_tree = malloc(move_tree_capacity * (sizeof(struct move_tree) + state_size));
 }
 
-static void finalize_branches()
+static void finalize_move_tree()
 {
-    free(past_states);
     free(move_tree);
 }
 
 #define leading_zeros __builtin_clz
 #define trailing_zeros __builtin_ctz
 
-bool horizontal_seek(enum direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
+static inline int offset(const struct position * position)
+{
+    return (ints_per_row * position->y) + (position->x / 32);
+}
+
+static inline int horizontal_offset(int x)
+{
+    return x / 32;
+}
+
+static inline int get_bit(const uint32_t * bit_str, int offset)
+{
+    return (*bit_str << offset & 1);
+}
+
+static inline uint32_t mask(const struct position * position, enum flip flip)
+{
+    uint32_t ret_num = 0x80000000 >> (position->x % 32);
+    return flip == ON ? ret_num : ~ret_num;
+}
+
+static inline void move_bit(uint32_t * state, const struct position * initial_position, const struct position * final_position)
+{
+    int initial_offset = offset(initial_position), final_offset = offset(final_position);
+    state[initial_offset] = state[initial_offset] & mask(initial_position, OFF);
+    state[final_offset] = state[final_offset] | mask(final_position, ON);
+}
+
+bool horizontal_seek(enum direction direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
 {
     bool first = true;
     
     if( direction == WEST )
     {
         unsigned int lz;
-        for (int i = horiz_offset(current_position->x), offset = 0; i >= 0; --i)//FIXME: write this inline function
+        for (int i = horizontal_offset(current_position->x), offset = 0; i >= 0; --i)//FIXME: write this inline function
         {
             //some sort of prefetch can be added
             if(first)
@@ -101,7 +130,7 @@ bool horizontal_seek(enum direction, const uint32_t * state, const struct positi
     } else //direction == EAST
     {
         unsigned int tz;
-        for (int i = horiz_offset(current_position->x), offset = 0; i < ints_per_row; ++i)//FIXME: write this inline function
+        for (int i = horizontal_offset(current_position->x), offset = 0; i < ints_per_row; ++i)//FIXME: write this inline function
         {
             //some sort of prefetch can be added
             if(first)
@@ -137,44 +166,14 @@ bool horizontal_seek(enum direction, const uint32_t * state, const struct positi
     return false;
 }
 
-static inline int offset(const struct * position)
-{
-    return (ints_per_row * position->y) + (position->x / 32);
-}
-
-static inline int horizontal_offset(int x)
-{
-    return x / 32;
-}
-
-static inline int get_bit(const uint32_t * bit_str, int offset)
-{
-    return (*bit_str << offset & 1);
-}
-
-static inline void move_bit(uint32_t * state, const struct * initial_position, const struct * final_position)
-{
-    int initial_offset = offset(initial_position), final_offset = offset(final_position);
-    *state[initial_offset] = *state[initial_offset] & mask(initial_position, OFF);
-    *state[final_offset] = *state[final_offset] | mask(final_position, ON);
-}
-
-static inline uint32_t mask(const struct * position, enum flip)
-{
-    uint32_t ret_num = 0x80000000 >> (position->x % 32);
-    return flip == ON ? ret_num : ~ret_num;
-}
-
-
-
-bool vertical_seek(enum direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
+bool vertical_seek(enum direction direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
 {
     int mod_cp = current_position->x % 32;
     if (direction == NORTH)
     {
         for (int j = offset(current_position) - ints_per_row, y = current_position->y; j >= 0; j -= ints_per_row, --y)//FIXME: write this inline function
         {
-            if (get_bit(state[j], mod_cp))//FIXME: write this function
+            if (get_bit(&state[j], mod_cp))//FIXME: write this function
             {
                 block_position->x = current_position->x;
                 block_position->y = y;
@@ -185,7 +184,7 @@ bool vertical_seek(enum direction, const uint32_t * state, const struct position
     {
         for (int j = offset(current_position) + ints_per_row, y = current_position->y; j < ints_per_state; j += ints_per_row, ++y)//FIXME: write this inline function
         {
-            if (get_bit(state[j], mod_cp))//FIXME: write this function!
+            if (get_bit(&state[j], mod_cp))//FIXME: write this function!
             {
                 block_position->x = current_position->x;
                 block_position->y = y;
@@ -200,22 +199,22 @@ bool vertical_seek(enum direction, const uint32_t * state, const struct position
 bool move(enum direction direction, struct position * position,
     const uint32_t * current_state, uint32_t * next_state)
 {
-    struct position * set_position = (position*) alloca(sizeof(position));
+    struct position set_position;
     
     if (direction == NORTH || direction == SOUTH)
     {
-        if (vertical_seek(direction, current_state, position, set_position))
+        if (vertical_seek(direction, current_state, position, &set_position))
         {
             memcpy(next_state, current_state, state_size);
-            move_bit(next_state, position, set_position);//FIXME: write this function
+            move_bit(next_state, position, &set_position);//FIXME: write this function
             return true;
         }
     } else //direction == WEST || direction == EAST
     {
-        if (horizontal_seek(direction, current_state, position, set_position))
+        if (horizontal_seek(direction, current_state, position, &set_position))
         {
             memcpy(next_state, current_state, state_size);
-            move_bit(next_state, position, set_position);//FIXME: write this function
+            move_bit(next_state, position, &set_position);//FIXME: write this function
             return true;
         }
     }
@@ -223,38 +222,37 @@ bool move(enum direction direction, struct position * position,
     return false;
 }
 
-bool states_equal(uint32_t * first, uint32_t * second)
+bool states_equal(const uint32_t * first, const uint32_t * second)
 {
     return memcmp(first, second, state_size);
 }
 
-unsigned int calculate_score(uint32_t * first_state, uint32_t * second_state)
+unsigned int calculate_score(const uint32_t * first_state, const uint32_t * second_state)
 {
-    unsigned int num_bits_set = 0;
-    uint32_t temp;
-    for (int i = 0; i < state_size / 4; ++i) {//tiny optimization: maybe declare a global state_size_int = state_size / 4 if you use it other places
-        temp = first_state[i] ^ second_state[i];
-        num_bits_sets += bits_set(temp);
-        //builtin prefetch the next ones here
-    }
-    
-    return num_bits_set;
-}
+    unsigned int score = 0;
 
-static inline struct position * past_state(int index)
-{
-    return &past_states[index * state_length];
-}
+    int index;
 
-static bool is_past_state(struct position * state)
-{
-    struct position * past;
-
-    for (past = past_states;
-        past < past_states + state_length * branches_length;
-        past += state_length)
+    for (index = 0; index < ints_per_state; ++index)
     {
-        if (states_equal(state, past))
+        score += __builtin_popcount(first_state[index] ^ second_state[index]);
+    }
+
+    return score;
+}
+
+static inline struct move_tree * past_move(int index)
+{
+    return ((void *) &move_tree[index]) + index * state_size;
+}
+
+static bool is_past_state(const uint32_t * state)
+{
+    int index;
+
+    for (index = 0; index < move_tree_capacity; ++index)
+    {
+        if (states_equal(past_move(index)->state, state))
         {
             return true;
         }
@@ -263,63 +261,57 @@ static bool is_past_state(struct position * state)
     return false;
 }
 
-static int add_branch(struct position * state, struct position * parent, int index, enum direction direction)
+static uint32_t * add_move(const uint32_t * state, const uint32_t * parent_state,
+    const struct position * position, enum direction direction)
 {
-    ++branches_length;
+    struct move_tree * move_node;
 
-    if (branches_length > branches_capacity)
+    move_node = past_move(move_tree_length++);
+
+    if (move_tree_length > move_tree_capacity)
     {
-        branches_capacity *= 2;
-
-        past_states = realloc(past_states,
-            branches_capacity * state_length * sizeof(struct position));
-        move_tree = realloc(move_tree, branches_capacity * sizeof(struct move_tree));
+        move_tree_capacity *= 2;
+        move_tree = realloc(move_tree, move_tree_capacity * state_size);
     }
 
-    memcpy(past_state(branches_length - 1), state, state_length * sizeof(struct position));
-    move_tree[branches_length - 1].parent = &move_tree[parent - past_states];
-    move_tree[branches_length - 1].direction = direction;
-    move_tree[branches_length - 1].position = &past_state(branches_length - 1)[index];
+    if (position) move_node->position = *position;
+    move_node->direction = direction;
+    move_node->parent = ((void *) parent_state) - ((long) &((struct move_tree *) NULL)->state);
 
-    return branches_length - 1;
+    memcpy(move_node->state, state, state_size);
+
+    return move_node->state;
 }
 
-void print_state(struct position * state)
-{
-    int index = 0;
-
-    DEBUG_PRINT("0x%x: { ", state);
-
-    for (index = 0; index < state_length; ++index)
-    {
-        DEBUG_PRINT("(%u, %u) ", state[index].x, state[index].y);
-    }
-
-    DEBUG_PRINT("} (%u)\n", omp_get_thread_num());
-}
-
-bool find_path(struct position * start_state, struct position * end_state)
+bool find_path(const uint32_t * start_state, const uint32_t * end_state)
 {
     struct queue * queues;
     bool found = false;
     bool done = false;
+    unsigned int jobs = 0;
+    unsigned int threads_waiting = 0;
+    int queue_index;
 
-    initialize_branches();
+    ints_per_row = state_width / 32 + state_width % 32 == 0 ? 0 : 1;
+    ints_per_state = state_height * ints_per_row;
+    state_size = ints_per_state * 4;
 
-    add_branch(start_state, NULL, 0, 0);
+    initialize_move_tree();
+
+    add_move(start_state, NULL, NULL, 0);
 
     #pragma omp parallel shared(found, done)
     {
-        struct position * state;
-        struct position * position;
-        struct position next_state[state_length];
-        enum direction direction;
-        int queue_index;
-        int past_index;
-        struct queue * smallest_queue;
-        unsigned int score;
+        uint32_t * state;
+        uint32_t next_state[ints_per_state];
 
-        char message[256];
+        uint32_t bit_set;
+        int bit_set_index;
+        char bit_index;
+
+        struct position position;
+        enum direction direction;
+        unsigned int score;
 
         #pragma omp single
         {
@@ -331,8 +323,10 @@ bool find_path(struct position * start_state, struct position * end_state)
                 queue_initialize(&queues[queue_index]);
             }
 
-            queue_insert(&queues[0], calculate_score(past_state(0), end_state), past_state(0));
+            queue_insert(&queues[0], 0, past_move(0)->state);
         }
+
+        threads_waiting = omp_get_num_threads();
 
         while (!done)
         {
@@ -340,71 +334,78 @@ bool find_path(struct position * start_state, struct position * end_state)
             while (queues[omp_get_thread_num()].size == 0)
             {
                 #pragma omp flush(queues)
-            }
 
-            state = queue_pop(&queues[omp_get_thread_num()]);
-
-            #pragma omp critical
-            print_state(state);
-
-            for (position = state; position < state + state_length && !done; ++position)
-            {
-                memcpy(next_state, state, state_length * sizeof(struct position));
-
-                for (direction = NORTH; direction <= WEST && !done; ++direction)
+                if (threads_waiting == omp_get_num_threads())
                 {
-                    if (move(direction, position - state, state, next_state))
+                    #pragma omp single
+                    for (queue_index = 0; queue_index < omp_get_num_threads(); ++queue_index)
                     {
-                        if (!is_past_state(next_state))
-                        {
-                            #pragma omp critical
-                            DEBUG_PRINT("%u %u %c - okay (%u)\n", position->x, position->y, direction_char[direction],
-                                omp_get_thread_num());
+                        if (queues[queue_index].size > 0) break;
+                    }
 
-                            score = calculate_score(next_state, end_state);
-
-                            if (score == 0)
-                            {
-                                /* Huzzah! We found it! */
-                                puts("found solution");
-                                done = true;
-                                found = true;
-                            }
-                            else
-                            {
-                                past_index = add_branch(next_state, state, position - state, direction);
-                                smallest_queue = NULL;
-
-                                for (queue_index = 0; queue_index < omp_get_num_threads(); ++queue_index)
-                                {
-                                    if (!smallest_queue || queues[queue_index].size < smallest_queue->size)
-                                    {
-                                        smallest_queue = &queues[queue_index];
-
-                                        if (smallest_queue->size == 0) break;
-                                    }
-                                }
-
-                                #pragma omp critical
-                                {
-                                    DEBUG_PRINT("inserting:\n\t");
-                                    DEBUG_PRINT("    to queue %u (%u)\n", smallest_queue - queues, omp_get_thread_num());
-                                }
-
-                                queue_insert(smallest_queue, score, past_state(past_index));
-                                #pragma omp flush(queues)
-
-                                #pragma omp critical
-                                DEBUG_PRINT("queue size: %u (%u)\n", smallest_queue->size, omp_get_thread_num());
-                            }
-                        }
+                    if (queue_index == omp_get_num_threads())
+                    {
+                        done = true;
                     }
                 }
             }
+
+            #pragma omp atomic
+            --threads_waiting;
+
+            state = queue_pop(&queues[omp_get_thread_num()]);
+
+            for (bit_set_index = 0; bit_set_index < ints_per_state && !done; ++bit_set_index)
+            {
+                bit_set = state[bit_set_index];
+
+                while (bit_set && !done)
+                {
+                    bit_index = __builtin_ffs(bit_set);
+
+                    position.x = bit_set_index % ints_per_row + bit_index;
+                    position.y = bit_set_index / ints_per_row;
+
+                    for (direction = NORTH; direction <= WEST && !done; ++direction)
+                    {
+                        if (move(direction, &position, state, next_state))
+                        {
+                            if (!is_past_state(next_state))
+                            {
+                                #pragma omp critical
+                                DEBUG_PRINT("%u %u %c - okay (%u)\n", position.x, position.y, direction_char[direction],
+                                    omp_get_thread_num());
+
+                                score = calculate_score(next_state, end_state);
+
+                                if (score == 0)
+                                {
+                                    /* Huzzah! We found it! */
+                                    puts("found solution");
+                                    done = true;
+                                    found = true;
+                                }
+                                else
+                                {
+                                    add_move(next_state, state, &position, direction);
+
+                                    queue_insert(&queues[jobs++ % omp_get_num_threads()], score,
+                                        add_move(next_state, state, &position, direction));
+                                }
+                            }
+                        }
+                    }
+
+                    bit_set &= ~(1 << bit_index);
+                }
+            }
+
+            #pragma omp atomic
+            ++threads_waiting;
         }
     }
 
-    finalize_branches();
+    finalize_move_tree();
 
     return found;
 }
