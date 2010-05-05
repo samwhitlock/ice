@@ -86,6 +86,8 @@ static inline void state_clear_bit(const uint32_t * state, int x, int y)
 bool move(enum direction direction, struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
+    printf("MOVE (%u, %u) %c\n", position->x, position->y, direction_char[direction]);
+
     if (direction == NORTH)
     {
         int y;
@@ -346,6 +348,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
             {
                 #pragma omp flush(queues)
 
+/*
                 if (threads_waiting == omp_get_num_threads())
                 {
                     #pragma omp single
@@ -359,6 +362,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                         done = true;
                     }
                 }
+*/
             }
 
             #pragma omp atomic
@@ -387,6 +391,10 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                     {
                         if (move(direction, &position, state, next_state))
                         {
+                            puts("before:");
+                            print_state(state);
+                            puts("after:");
+                            print_state(next_state);
                             if (!is_past_state(next_state))
                             {
                                 #pragma omp critical
