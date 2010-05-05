@@ -3,14 +3,17 @@
  * Copyright (c) 2010 Michael Forney
  */
 
+#include <stdio.h>
+
+#include "ice.h"
+#include "test.h"
+
 /* Directions:
  *
  *   N
  * W-|-E
  *   S
  */
-
-uint32_t next_state[ints_per_state];
 
 /********** NORTH {{{ **********/
 static bool test_invalid_edge_north()
@@ -43,7 +46,11 @@ static bool test_invalid_edge_north()
         0x00
     };
 
-    return !move(NORTH, (struct position) { 3, 3 }, state, next_state);
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 3, 3 };
+
+    return !move(NORTH, &position, state, next_state);
 }
 
 static bool test_invalid_block_north()
@@ -76,7 +83,11 @@ static bool test_invalid_block_north()
         0x00
     };
 
-    return !move(NORTH, (struct position) { 3, 3 }, state, next_state);
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 3, 3 };
+
+    return !move(NORTH, &position, state, next_state);
 }
 
 static bool test_move_north()
@@ -109,6 +120,8 @@ static bool test_move_north()
         0x00
     };
 
+    uint32_t next_state[ints_per_state];
+
     const uint32_t expected_next_state[] = {
         0x08,
         0x2a,
@@ -120,7 +133,9 @@ static bool test_move_north()
         0x00
     };
 
-    if (!move(NORTH, (struct position) { 3, 3 }, state, next_state))
+    struct position position = { 3, 3 };
+
+    if (!move(NORTH, &position, state, next_state))
     {
         return false;
     }
@@ -160,7 +175,11 @@ static bool test_invalid_edge_south()
         0x00
     };
 
-    return !move(SOUTH, (struct position) { 3, 3 }, state, next_state);
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 3, 3 };
+
+    return !move(SOUTH, &position, state, next_state);
 }
 
 static bool test_invalid_block_south()
@@ -193,7 +212,11 @@ static bool test_invalid_block_south()
         0x00
     };
 
-    return !move(SOUTH, (struct position) { 3, 3 }, state, next_state);
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 3, 3 };
+
+    return !move(SOUTH, &position, state, next_state);
 }
 
 static bool test_move_south()
@@ -226,6 +249,8 @@ static bool test_move_south()
         0x00
     };
 
+    uint32_t next_state[ints_per_state];
+
     const uint32_t expected_next_state[] = {
         0x00,
         0x22,
@@ -237,7 +262,9 @@ static bool test_move_south()
         0x00
     };
 
-    if (!move(SOUTH, (struct position) { 3, 3 }, state, next_state))
+    struct position position = { 3, 3 };
+
+    if (!move(SOUTH, &position, state, next_state))
     {
         return false;
     }
@@ -277,7 +304,11 @@ static bool test_invalid_edge_east()
         0x00
     };
 
-    return !move(EAST, (struct position) { 3, 3 }, state, next_state);
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 3, 3 };
+
+    return !move(EAST, &position, state, next_state);
 }
 
 static bool test_invalid_block_east()
@@ -310,7 +341,11 @@ static bool test_invalid_block_east()
         0x00
     };
 
-    return !move(EAST, (struct position) { 3, 3 }, state, next_state);
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 3, 3 };
+
+    return !move(EAST, &position, state, next_state);
 }
 
 static bool test_move_east()
@@ -343,6 +378,8 @@ static bool test_move_east()
         0x00
     };
 
+    uint32_t next_state[ints_per_state];
+
     const uint32_t expected_next_state[] = {
         0x00,
         0x2a,
@@ -354,7 +391,9 @@ static bool test_move_east()
         0x00
     };
 
-    if (!move(EAST, (struct position) { 3, 3 }, state, next_state))
+    struct position position = { 3, 3 };
+
+    if (!move(EAST, &position, state, next_state))
     {
         return false;
     }
@@ -394,7 +433,11 @@ static bool test_invalid_edge_west()
         0x00
     };
 
-    return !move(WEST, (struct position) { 3, 3 }, state, next_state);
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 3, 3 };
+
+    return !move(WEST, &position, state, next_state);
 }
 
 static bool test_invalid_block_west()
@@ -427,7 +470,11 @@ static bool test_invalid_block_west()
         0x00
     };
 
-    return !move(WEST, (struct position) { 3, 3 }, state, next_state);
+    struct position position = { 3, 3 };
+
+    uint32_t next_state[ints_per_state];
+
+    return !move(WEST, &position, state, next_state);
 }
 
 static bool test_move_west()
@@ -460,6 +507,8 @@ static bool test_move_west()
         0x00
     };
 
+    uint32_t next_state[ints_per_state];
+
     const uint32_t expected_next_state[] = {
         0x00,
         0x2a,
@@ -471,7 +520,9 @@ static bool test_move_west()
         0x00
     };
 
-    if (!move(WEST, (struct position) { 3, 3 }, state, next_state))
+    struct position position = { 3, 3 };
+
+    if (!move(WEST, &position, state, next_state))
     {
         return false;
     }
@@ -499,14 +550,16 @@ int main(int argc, char * argv[])
     RUN_TEST(test_move_south);
 
     /* East */
-    RUN_TEST(test_invalid_edge_south);
-    RUN_TEST(test_invalid_block_south);
-    RUN_TEST(test_move_south);
+    RUN_TEST(test_invalid_edge_east);
+    RUN_TEST(test_invalid_block_east);
+    RUN_TEST(test_move_east);
 
     /* West */
     RUN_TEST(test_invalid_edge_west);
     RUN_TEST(test_invalid_block_west);
     RUN_TEST(test_move_west);
+
+    return EXIT_STATUS;
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=marker

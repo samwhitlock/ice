@@ -47,6 +47,9 @@ extern int state_height;
 extern int state_width;
 extern size_t state_size;
 
+extern int ints_per_row;
+extern int ints_per_state;
+
 /********** Function Declarations **********/
 
 /**
