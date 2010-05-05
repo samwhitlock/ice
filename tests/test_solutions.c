@@ -20,7 +20,8 @@ struct test_case
 
 struct test_case test_cases[] = {
     { "simple",     true },
-    { "spiral_4",   true }
+    { "spiral_4",   true },
+    { "cs61c",      true }
 };
 int test_cases_length = sizeof(test_cases) / sizeof(struct test_case);
 
