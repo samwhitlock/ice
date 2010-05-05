@@ -25,9 +25,9 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
 
     *state = calloc(ints_per_state, 4);
 
-    for (y = 0; y < height; ++y)
+    for (y = 0; y < *height; ++y)
     {
-        for (x = 0; x < width; ++x)
+        for (x = 0; x < *width; ++x)
         {
             if (getc(file) == '1')
             {
