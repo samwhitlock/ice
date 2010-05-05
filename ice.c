@@ -20,8 +20,6 @@
 #endif
 
 /* Some helpful definitions */
-#define leading_zeros __builtin_clz
-#define trailing_zeros __builtin_ctz
 #define set_ones __builtin_popcount
 #define first_one __builtin_ffs
 
@@ -82,6 +80,22 @@ static inline uint32_t mask(const struct position * position, enum flip flp)
 {
     uint32_t ret_num = 0x80000000 >> (position->x % 32);
     return flp == ON ? ret_num : ~ret_num;
+}
+
+static inline unsigned int leading_zeros(uint32_t num)
+{
+    if(num)
+        return 32;
+    else
+        return __builtin_clz(num);    
+}
+
+static inline unsigned int trailing_zeros(uint32_t num)
+{
+    if(num)
+        return 32;
+    else
+        return __builtin_ctz(num);
 }
 
 static inline void move_bit(uint32_t * state, const struct position * initial_position, const struct position * final_position)
