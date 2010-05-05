@@ -3,6 +3,9 @@
  * Copyright (c) 2010 Michael Forney
  */
 
+#include "ice.h"
+#include "test.h"
+
 bool test_same()
 {
     /* State:
