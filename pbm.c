@@ -31,7 +31,7 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
         {
             if (getc(file) == '1')
             {
-                (*state)[y * ints_per_row + x / 32] &= 1 << (x % 32);
+                (*state)[y * ints_per_row + x / 32] |= 1 << (x % 32);
             }
 
             getc(file);
