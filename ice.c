@@ -27,6 +27,12 @@ char direction_char[] = {
     [WEST] = 'W'
 };
 
+enum flip
+{
+    OFF,
+    ON
+};
+
 /* The number of positions that compose a state of the bits */
 int state_length, state_height, state_width;
 
@@ -51,54 +57,169 @@ static void finalize_branches()
     free(move_tree);
 }
 
-bool move(enum direction direction, int move_index,
-    const struct position * current, struct position * next)
+#define leading_zeros __builtin_clz
+#define trailing_zeros __builtin_ctz
+
+bool horizontal_seek(enum direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
 {
-    int index;
-    const struct position * other_position;
-    const struct position * current_position;
-    const struct position * blocking_position = NULL;
-
-    current_position = &current[move_index];
-
-    /* If any of the other bits have a {higher,lower} {x,y} coordinate, this
-     * move is valid */
-    for (index = 0; index < state_length; ++index)
+    bool first = true;
+    
+    if( direction == WEST )
     {
-        /* Skip over the bit we are currently trying to move */
-        if (index == move_index) continue;
-
-        other_position = &current[index];
-
-        if ((direction == NORTH &&
-                current_position->x == other_position->x && current_position->y > other_position->y + 1 &&
-                (!blocking_position || blocking_position->y < current_position->y)) ||
-            (direction == SOUTH &&
-                current_position->x == other_position->x && current_position->y < other_position->y - 1 &&
-                (!blocking_position || blocking_position->y > current_position->y)) ||
-            (direction == WEST &&
-                current_position->y == other_position->y && current_position->x > other_position->x + 1 &&
-                (!blocking_position || blocking_position->x < current_position->x)) ||
-            (direction == EAST &&
-                current_position->y == other_position->y && current_position->x < other_position->x - 1 &&
-                (!blocking_position || blocking_position->x > current_position->x)))
+        unsigned int lz;
+        for (int i = horiz_offset(current_position->x), offset = 0; i >= 0; --i)//FIXME: write this inline function
         {
-            blocking_position = other_position;
+            //some sort of prefetch can be added
+            if(first)
+            {
+               lz = leading_zeros(state[i] << (32 - (current_position->x % 32)));
+                
+                if (lz < 32)
+                {
+                    block_position->y=current_position->y;
+                    block_position->x=current_position->x - (lz + 1);
+                    return true;
+                } else
+                {   
+                    offset += leading_zeros(state[i]);
+                    first = false;
+                }
+            } else
+            { 
+                lz = leading_zeros(state[i]);
+                if (lz < 32)
+                {
+                    //it's found
+                    block_position->y=current_position->y;
+                    block_position->x=current_position->x - (offset+lz+1);
+                    return true;
+                }
+                
+                offset += 32;
+            }
+        }
+    } else //direction == EAST
+    {
+        unsigned int tz;
+        for (int i = horiz_offset(current_position->x), offset = 0; i < ints_per_row; ++i)//FIXME: write this inline function
+        {
+            //some sort of prefetch can be added
+            if(first)
+            {
+                tz = trailing_zeros(state[i] >> (current_position->y % 32));
+                
+                if (tz < 32)
+                {
+                    block_position->y=current_position->y;
+                    block_position->x=current_position->x + (tz + 1);
+                    return true;
+                } else
+                {
+                    offset += trailing_zeros(state[i]);
+                    first = false;
+                }
+            } else
+            {
+                tz = trailing_zeros(state[i]);
+                if (tz < 32)
+                {
+                    //it's found!!!
+                    block_position->y=current_position->y;
+                    block_position->x=current_position->x + (offset+tz+1);
+                    return true;
+                }
+                
+                offset += 32;
+            }
         }
     }
+    
+    return false;
+}
 
-    if (blocking_position)
+static inline int offset(const struct * position)
+{
+    return (ints_per_row * position->y) + (position->x / 32);
+}
+
+static inline int horizontal_offset(int x)
+{
+    return x / 32;
+}
+
+static inline int get_bit(const uint32_t * bit_str, int offset)
+{
+    return (*bit_str << offset & 1);
+}
+
+static inline void move_bit(uint32_t * state, const struct * initial_position, const struct * final_position)
+{
+    int initial_offset = offset(initial_position), final_offset = offset(final_position);
+    *state[initial_offset] = *state[initial_offset] & mask(initial_position, OFF);
+    *state[final_offset] = *state[final_offset] | mask(final_position, ON);
+}
+
+static inline uint32_t mask(const struct * position, enum flip)
+{
+    uint32_t ret_num = 0x80000000 >> (position->x % 32);
+    return flip == ON ? ret_num : ~ret_num;
+}
+
+
+
+bool vertical_seek(enum direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
+{
+    int mod_cp = current_position->x % 32;
+    if (direction == NORTH)
     {
-        next[move_index] = *blocking_position;
-
-        if (direction == NORTH)         ++next[move_index].y;
-        else if (direction == SOUTH)    --next[move_index].y;
-        else if (direction == WEST)     ++next[move_index].x;
-        else                            --next[move_index].x;
-
-        return true;
+        for (int j = offset(current_position) - ints_per_row, y = current_position->y; j >= 0; j -= ints_per_row, --y)//FIXME: write this inline function
+        {
+            if (get_bit(state[j], mod_cp))//FIXME: write this function
+            {
+                block_position->x = current_position->x;
+                block_position->y = y;
+                return true;
+            }
+        }
+    } else //direction == SOUTH
+    {
+        for (int j = offset(current_position) + ints_per_row, y = current_position->y; j < ints_per_state; j += ints_per_row, ++y)//FIXME: write this inline function
+        {
+            if (get_bit(state[j], mod_cp))//FIXME: write this function!
+            {
+                block_position->x = current_position->x;
+                block_position->y = y;
+                return true;
+            }
+        }
     }
+    
+    return false;
+}
 
+bool move(enum direction direction, struct position * position,
+    const uint32_t * current_state, uint32_t * next_state)
+{
+    struct position * set_position = (position*) alloca(sizeof(position));
+    
+    if (direction == NORTH || direction == SOUTH)
+    {
+        if (vertical_seek(direction, current_state, position, set_position))
+        {
+            memcpy(next_state, current_state, state_size);
+            move_bit(next_state, position, set_position);//FIXME: write this function
+            return true;
+        }
+    } else //direction == WEST || direction == EAST
+    {
+        if (horizontal_seek(direction, current_state, position, set_position))
+        {
+            memcpy(next_state, current_state, state_size);
+            move_bit(next_state, position, set_position);//FIXME: write this function
+            return true;
+        }
+    }
+    
     return false;
 }
 
@@ -111,9 +232,10 @@ unsigned int calculate_score(uint32_t * first_state, uint32_t * second_state)
 {
     unsigned int num_bits_set = 0;
     uint32_t temp;
-    for (int i = 0; i < state_size / 4; ++i) {
+    for (int i = 0; i < state_size / 4; ++i) {//tiny optimization: maybe declare a global state_size_int = state_size / 4 if you use it other places
         temp = first_state[i] ^ second_state[i];
         num_bits_sets += bits_set(temp);
+        //builtin prefetch the next ones here
     }
     
     return num_bits_set;
