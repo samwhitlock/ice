@@ -83,6 +83,22 @@ static inline void state_clear_bit(const uint32_t * state, int x, int y)
     *state_bitset(state, x, y) &= ~(1 << (x % 32));
 }
 
+static inline void state_move_bit(const uint32_t * state, int from_x, int from_y, int to_x, int to_y)
+{
+    state_clear_bit(state, from_x, from_y);
+    state_set_bit(state, to_x, to_y);
+}
+
+static inline int offset(const struct position * position)
+{
+    return (ints_per_row * position->y) + ((position->x) / 32);
+}
+
+static inline int block_index_offset(const struct position * position)
+{
+    return (position->x) % 32;
+}
+
 bool move(enum direction direction, const struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
@@ -122,28 +138,69 @@ bool move(enum direction direction, const struct position * position,
     }
     else
     {
-        int state_offset = offset(position), bit_offset = position->x, init_index = block_index_offset(position);//FIXME: write these inline function
+        int state_offset = offset(position), bit_offset = position->x, init_index = block_index_offset(position);
         uint32_t bitSet;
         
         if (direction == EAST)
         {
             //first stuff
-            bitSet = state[state_offset] >> 
-            
+            bitSet = state[state_offset] >> (init_index + 1);
+
+            if (bitSet != 0)//their are blocking bits to the EAST
+            {
+                //found!
+                bit_offset += trailing_zeros(bitSet);
+                state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                return true;
+            } else {
+                //add the number of zeros to the EAST to the offset
+                bit_offset += 32 - (init_index+1);
+            }
             
             for (++state_offset; state_offset % ints_per_row > 0; ++state_offset)
             {
+                bitSet = state[state_offset];
                 
+                if(bitSet != 0)
+                {
+                    //found!
+                    bit_offset += trailing_zeros(bitSet);
+                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    return true;
+                } else {
+                    bit_offset += 32;                    
+                }
             }
         }
         else
         {
             //first stuff
+            bitSet = state[state_offset] << (32 - init_index);
             
+            if (bitSet != 0)//their are blocking bits to the WEST
+            {
+                //found!
+                bit_offset += leading_zeros(bitSet);
+                state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                return true;
+            } else {
+                //add the number of zeros to the WEST to the offset
+                bit_offset += init_index;
+            }
             
             for (--state_offset; state_offset % ints_per_row < ints_per_row - 1; --state_offset)
             {
+                bitSet = state[state_offset];
                 
+                if(bitSet != 0)
+                {
+                    //found!
+                    bit_offset += leading_zeros(bitSet);
+                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    return true;
+                } else {
+                    bit_offset += 32;
+                }
             }
         }
     } 

@@ -73,7 +73,7 @@ bool states_equal(const uint32_t * first, const uint32_t * second);
  */
 unsigned int calculate_score(const uint32_t * first_state, const uint32_t * second_state);
 
-bool move(enum direction direction, struct position * position,
+bool move(enum direction direction, const struct position * position,
     const uint32_t * current_state, uint32_t * next_state);
 
 void print_state(const uint32_t * state);
