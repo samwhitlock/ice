@@ -75,13 +75,13 @@ static inline int horizontal_offset(int x)
 
 static inline int get_bit(const uint32_t * bit_str, int offset)
 {
-    return (*bit_str << offset & 1);
+    return (*bit_str >> (32 - offset)) & 1;
 }
 
-static inline uint32_t mask(const struct position * position, enum flip flip)
+static inline uint32_t mask(const struct position * position, enum flip flp)
 {
     uint32_t ret_num = 0x80000000 >> (position->x % 32);
-    return flip == ON ? ret_num : ~ret_num;
+    return flp == ON ? ret_num : ~ret_num;
 }
 
 static inline void move_bit(uint32_t * state, const struct position * initial_position, const struct position * final_position)
@@ -170,7 +170,7 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
 
 bool vertical_seek(enum direction direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
 {
-    int mod_cp = current_position->x % 32;
+    int mod_cp = (current_position->x) % 32;
     if (direction == NORTH)
     {
         for (int j = offset(current_position) - ints_per_row, y = current_position->y; j >= 0; j -= ints_per_row, --y)
