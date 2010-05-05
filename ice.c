@@ -84,7 +84,7 @@ static inline uint32_t mask(const struct position * position, enum flip flp)
 
 static inline unsigned int leading_zeros(uint32_t num)
 {
-    if(num)
+    if(num==0)
         return 32;
     else
         return __builtin_clz(num);    
@@ -92,7 +92,7 @@ static inline unsigned int leading_zeros(uint32_t num)
 
 static inline unsigned int trailing_zeros(uint32_t num)
 {
-    if(num)
+    if(num==0)
         return 32;
     else
         return __builtin_ctz(num);
@@ -100,10 +100,7 @@ static inline unsigned int trailing_zeros(uint32_t num)
 
 static inline void move_bit(uint32_t * state, const struct position * initial_position, const struct position * final_position)
 {
-    #pragma omp critical
-    {
-        printf("Moving bit at (%d,%d) to (%d, %d)\n", initial_position->x, initial_position->y, final_position->x, final_position->y);
-    }
+    printf("Moving bit at (%d,%d) to (%d, %d)\n", initial_position->x, initial_position->y, final_position->x, final_position->y);
     
     int initial_offset = offset(initial_position), final_offset = offset(final_position);
     state[initial_offset] = state[initial_offset] & mask(initial_position, OFF);
@@ -194,7 +191,7 @@ bool vertical_seek(enum direction direction, const uint32_t * state, const struc
     {
         for (int j = offset(current_position) - ints_per_row, y = current_position->y; j >= 0; j -= ints_per_row, --y)
         {
-            if (get_bit(&state[j], mod_cp))
+            if (get_bit(&state[j], mod_cp)==1)
             {
                 block_position->x = current_position->x;
                 block_position->y = y;
@@ -205,7 +202,7 @@ bool vertical_seek(enum direction direction, const uint32_t * state, const struc
     {
         for (int j = offset(current_position) + ints_per_row, y = current_position->y; j < ints_per_state; j += ints_per_row, ++y)
         {
-            if (get_bit(&state[j], mod_cp))
+            if (get_bit(&state[j], mod_cp)==1)
             {
                 block_position->x = current_position->x;
                 block_position->y = y;
