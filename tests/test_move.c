@@ -519,9 +519,9 @@ static bool test_move_border_middle_east()
      * |LSB                                                       MSB|   |LSB
      * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 | 0 1 1 0
      *
-     * Bit to move:         (30, 0)
+     * Bit to move:         (29, 0)
      * Direction to move:   East
-     * Expected result:     Move to (31, 0)
+     * Expected result:     Move to (33, 0)
      */
 
     const uint32_t state[] = {
