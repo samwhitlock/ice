@@ -1,7 +1,9 @@
-/* tests/test_solutions.c
+/* tests/test.h
  *
  * Copyright (c) 2010 Michael Forney
  */
+
+#include <stdio.h>
 
 int successes = 0;
 int failures = 0;
