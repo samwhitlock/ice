@@ -226,7 +226,7 @@ bool move(enum direction direction, struct position * position,
 
 bool states_equal(const uint32_t * first, const uint32_t * second)
 {
-    return memcmp(first, second, state_size);
+    return memcmp(first, second, state_size) == 0;
 }
 
 unsigned int calculate_score(const uint32_t * first_state, const uint32_t * second_state)

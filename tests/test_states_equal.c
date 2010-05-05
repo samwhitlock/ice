@@ -12,8 +12,8 @@
 
 static bool test_equal()
 {
-    uint32_t first[]    = { 0xdead, 0xbeef };
-    uint32_t second[]   = { 0xdead, 0xbeef };
+    uint32_t first[]    = { 0xdead1234, 0xbeef5678 };
+    uint32_t second[]   = { 0xdead1234, 0xbeef5678 };
 
     return states_equal(first, second);
 }
