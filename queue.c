@@ -33,9 +33,11 @@ void queue_initialize(struct queue * queue)
 
 uint32_t * queue_pop(struct queue * queue)
 {
-    uint32_t * state = queue->nodes[0].state;
+    uint32_t * state;
 
     omp_set_lock(&queue->lock);
+
+    state = queue->nodes[0].state;
 
     if (--queue->size > 0)
     {
