@@ -29,7 +29,7 @@ bool test_61c()
         0x1d777
     };
 
-    read_pbm("tests/pbm/61c_end.pbm", &state, &state_width, &state_height);
+    read_pbm("tests/pbm/61c_end.pbm", &state, &state_width, &state_height, NULL);
 
     state_size = state_height * 4;
 
@@ -84,7 +84,7 @@ bool test_spiral_8()
         0xff
     };
 
-    read_pbm("tests/pbm/spiral_8_start.pbm", &state, &state_width, &state_height);
+    read_pbm("tests/pbm/spiral_8_start.pbm", &state, &state_width, &state_height, NULL);
 
     state_size = state_height * 4;
 
@@ -127,7 +127,7 @@ bool test_simple()
         0x02
     };
 
-    read_pbm("tests/pbm/simple_start.pbm", &state, &state_width, &state_height);
+    read_pbm("tests/pbm/simple_start.pbm", &state, &state_width, &state_height, NULL);
 
     state_size = state_height * 4;
 
