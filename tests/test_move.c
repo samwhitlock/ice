@@ -732,7 +732,7 @@ static bool test_move_border_west()
      * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 | 1 0 0 0
      *
      * Bit to move:         (33, 0)
-     * Direction to move:   East
+     * Direction to move:   West
      * Expected result:     Move to (32, 0)
      */
 

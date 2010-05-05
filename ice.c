@@ -155,8 +155,8 @@ bool move(enum direction direction, const struct position * position,
         if (direction == EAST)
         {
             //first stuff
-            bitSet = state[state_offset] >> (init_index + 1);
-
+            bitSet =  init_index == 31 ? 0 : state[state_offset] >> (init_index + 1);
+            printf("In move EAST, shifting right by %u\n", init_index == 31 ? 0 : init_index+1);
             if (bitSet != 0)//their are blocking bits to the EAST
             {
                 //found!
@@ -191,10 +191,11 @@ bool move(enum direction direction, const struct position * position,
                 }
             }
         }
-        else//directino == WEST
+        else//direction == WEST
         {
             //first stuff
-            bitSet = state[state_offset] << (32 - init_index);
+            bitSet = init_index == 0 ? 0 : state[state_offset] << (32 - init_index);
+            printf("In move WEST, shifting right by %u\n", init_index == 0 ? 0 : 32-init_index);
             
             if (bitSet != 0)//their are blocking bits to the WEST
             {
