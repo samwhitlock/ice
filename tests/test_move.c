@@ -585,7 +585,7 @@ int main(int argc, char * argv[])
     state_width = 8;
     ints_per_row = 1;
     ints_per_state = 8;
-    state_size = 64;
+    state_size = 32;
 
     /* North */
     RUN_TEST(test_invalid_edge_north);
