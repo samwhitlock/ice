@@ -85,6 +85,7 @@ static inline void state_clear_bit(const uint32_t * state, int x, int y)
 
 static inline void state_move_bit(const uint32_t * state, int from_x, int from_y, int to_x, int to_y)
 {
+    printf("moving (%u, %u) to (%u, %u)\n", from_x, from_y, to_x, to_y);
     state_clear_bit(state, from_x, from_y);
     state_set_bit(state, to_x, to_y);
 }
