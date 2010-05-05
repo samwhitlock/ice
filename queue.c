@@ -40,7 +40,7 @@ uint32_t * queue_pop(struct queue * queue)
     if (--queue->size > 0)
     {
         unsigned int score = queue->nodes[queue->size].score;
-        struct position * state = queue->nodes[queue->size].state;
+        uint32_t * state = queue->nodes[queue->size].state;
 
         int index;
         int min_child_index;
