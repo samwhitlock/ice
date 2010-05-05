@@ -159,9 +159,15 @@ bool move(enum direction direction, const struct position * position,
             if (bitSet != 0)//their are blocking bits to the EAST
             {
                 //found!
-                bit_offset += trailing_zeros(bitSet);
-                state_move_bit(state, position->x, position->y, bit_offset, position->y);
-                return true;
+                if( trailing_zeros(bitSet) == 0 )
+                {
+                    return false;
+                } else
+                {
+                    bit_offset += trailing_zeros(bitSet);
+                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    return true;
+                }
             } else {
                 //add the number of zeros to the EAST to the offset
                 bit_offset += 32 - (init_index+1);
@@ -190,9 +196,15 @@ bool move(enum direction direction, const struct position * position,
             if (bitSet != 0)//their are blocking bits to the WEST
             {
                 //found!
-                bit_offset += leading_zeros(bitSet);
-                state_move_bit(state, position->x, position->y, bit_offset, position->y);
-                return true;
+                if( leading_zeros(bitSet) == 0 )
+                {
+                    return false;
+                } else 
+                {
+                    bit_offset += leading_zeros(bitSet);
+                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    return true;
+                }
             } else {
                 //add the number of zeros to the WEST to the offset
                 bit_offset += init_index;
