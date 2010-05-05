@@ -19,7 +19,7 @@ int main(int argc, char * argv[])
     uint32_t * start_state;
     uint32_t * end_state;
     int start_width, start_height;
-    int end_width, end_height;
+    int __attribute__((unused)) end_width, end_height;
 
     if (argc != 3)
     {
