@@ -17,8 +17,8 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
     int ints_per_state;
 
     file = fopen(filename, "r");
-    
-    *ones = 0;
+    if(ones != NULL)
+        *ones = 0;
 
     fscanf(file, "P1 %d %d\n", width, height);
 
@@ -34,7 +34,8 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
             if (getc(file) == '1')
             {
                 (*state)[y * ints_per_row + x / 32] |= 1 << (x % 32);
-                ++(*ones);
+                if(ones != NULL)
+                    ++(*ones);
             }
 
             getc(file);
