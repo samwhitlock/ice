@@ -73,7 +73,8 @@ static inline int horizontal_offset(int x)
 
 static inline int get_bit(const uint32_t * bit_str, int offset)
 {
-    return (*bit_str >> (32 - offset)) & 1;
+    printf("get_bit called with %d offset\n", offset);
+    return (*bit_str >> offset) & 1;
 }
 
 static inline uint32_t mask(const struct position * position, enum flip flp)
@@ -186,26 +187,30 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
 
 bool vertical_seek(enum direction direction, const uint32_t * state, const struct position * current_position, struct position * block_position)
 {
+    printf("I'm searching in this state:\n");
+    print_state(state);
     int mod_cp = (current_position->x) % 32;
     if (direction == NORTH)
     {
-        for (int j = offset(current_position) - ints_per_row, y = current_position->y; j >= 0; j -= ints_per_row, --y)
+        for (int j = offset(current_position) - ints_per_row, y = current_position->y-1; j >= 0; j -= ints_per_row, --y)
         {
+            printf("getting bit at (%d, %d)\n", current_position->x, y);
             if (get_bit(&state[j], mod_cp)==1)
             {
                 block_position->x = current_position->x;
-                block_position->y = y;
+                block_position->y = y+1;
                 return true;
             }
         }
     } else //direction == SOUTH
     {
-        for (int j = offset(current_position) + ints_per_row, y = current_position->y; j < ints_per_state; j += ints_per_row, ++y)
+        for (int j = offset(current_position) + ints_per_row, y = current_position->y+1; j < ints_per_state; j += ints_per_row, ++y)
         {
+            printf("getting bit at (%d, %d)\n", current_position->x, y);
             if (get_bit(&state[j], mod_cp)==1)
             {
                 block_position->x = current_position->x;
-                block_position->y = y;
+                block_position->y = y-1;
                 return true;
             }
         }
