@@ -98,7 +98,7 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
     if( direction == WEST )
     {
         unsigned int lz;
-        for (int i = horizontal_offset(current_position->x), offset = 0; i >= 0; --i)//FIXME: write this inline function
+        for (int i = horizontal_offset(current_position->x), offset = 0; i >= 0; --i)
         {
             //some sort of prefetch can be added
             if(first)
@@ -132,7 +132,7 @@ bool horizontal_seek(enum direction direction, const uint32_t * state, const str
     } else //direction == EAST
     {
         unsigned int tz;
-        for (int i = horizontal_offset(current_position->x), offset = 0; i < ints_per_row; ++i)//FIXME: write this inline function
+        for (int i = horizontal_offset(current_position->x), offset = 0; i < ints_per_row; ++i)
         {
             //some sort of prefetch can be added
             if(first)
@@ -173,9 +173,9 @@ bool vertical_seek(enum direction direction, const uint32_t * state, const struc
     int mod_cp = current_position->x % 32;
     if (direction == NORTH)
     {
-        for (int j = offset(current_position) - ints_per_row, y = current_position->y; j >= 0; j -= ints_per_row, --y)//FIXME: write this inline function
+        for (int j = offset(current_position) - ints_per_row, y = current_position->y; j >= 0; j -= ints_per_row, --y)
         {
-            if (get_bit(&state[j], mod_cp))//FIXME: write this function
+            if (get_bit(&state[j], mod_cp))
             {
                 block_position->x = current_position->x;
                 block_position->y = y;
@@ -184,9 +184,9 @@ bool vertical_seek(enum direction direction, const uint32_t * state, const struc
         }
     } else //direction == SOUTH
     {
-        for (int j = offset(current_position) + ints_per_row, y = current_position->y; j < ints_per_state; j += ints_per_row, ++y)//FIXME: write this inline function
+        for (int j = offset(current_position) + ints_per_row, y = current_position->y; j < ints_per_state; j += ints_per_row, ++y)
         {
-            if (get_bit(&state[j], mod_cp))//FIXME: write this function!
+            if (get_bit(&state[j], mod_cp))
             {
                 block_position->x = current_position->x;
                 block_position->y = y;
@@ -208,7 +208,7 @@ bool move(enum direction direction, struct position * position,
         if (vertical_seek(direction, current_state, position, &set_position))
         {
             memcpy(next_state, current_state, state_size);
-            move_bit(next_state, position, &set_position);//FIXME: write this function
+            move_bit(next_state, position, &set_position);
             return true;
         }
     } else //direction == WEST || direction == EAST
@@ -216,7 +216,7 @@ bool move(enum direction direction, struct position * position,
         if (horizontal_seek(direction, current_state, position, &set_position))
         {
             memcpy(next_state, current_state, state_size);
-            move_bit(next_state, position, &set_position);//FIXME: write this function
+            move_bit(next_state, position, &set_position);
             return true;
         }
     }
