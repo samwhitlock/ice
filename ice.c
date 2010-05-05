@@ -100,6 +100,11 @@ static inline unsigned int trailing_zeros(uint32_t num)
 
 static inline void move_bit(uint32_t * state, const struct position * initial_position, const struct position * final_position)
 {
+    #pragma omp critical
+    {
+        printf("Moving bit at (%d,%d) to (%d, %d)\n", initial_position->x, initial_position->y, final_position->x, final_position->y);
+    }
+    
     int initial_offset = offset(initial_position), final_offset = offset(final_position);
     state[initial_offset] = state[initial_offset] & mask(initial_position, OFF);
     state[final_offset] = state[final_offset] | mask(final_position, ON);
