@@ -181,9 +181,10 @@ bool move(enum direction direction, const struct position * position,
                 
                 if(bitSet != 0)
                 {
-                    if( trailing_zeros(bitSet) == 0 ) {
+                    if( trailing_zeros(bitSet) == 0 )
+                    {
                         return false;
-                    } else {   
+                    } else {
                         //found!
                         bit_offset += trailing_zeros(bitSet);
                         memcpy(next_state, state, state_size);
@@ -217,7 +218,7 @@ bool move(enum direction direction, const struct position * position,
                 }
             } else {
                 //add the number of zeros to the WEST to the offset
-                bit_offset += init_index;
+                bit_offset -= init_index;
             }
             
             for (--state_offset; state_offset % ints_per_row < ints_per_row - 1; --state_offset)
