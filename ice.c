@@ -20,6 +20,12 @@
 #define DEBUG_PRINT(format, args...)
 #endif
 
+/* Some helpful definitions */
+#define leading_zeros __builtin_clz
+#define trailing_zeros __builtin_ctz
+#define set_ones __builtin_popcount
+#define first_one __builtin_ffs
+
 char direction_char[] = {
     [NORTH] = 'N',
     [SOUTH] = 'S',
@@ -57,9 +63,6 @@ static void finalize_move_tree()
 {
     free(move_tree);
 }
-
-#define leading_zeros __builtin_clz
-#define trailing_zeros __builtin_ctz
 
 static inline int offset(const struct position * position)
 {
@@ -235,7 +238,7 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
 
     for (index = 0; index < ints_per_state; ++index)
     {
-        score += __builtin_popcount(first_state[index] ^ second_state[index]);
+        score += set_ones(first_state[index] ^ second_state[index]);
     }
 
     return score;
@@ -361,7 +364,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
 
                 while (bit_set && !done)
                 {
-                    bit_index = __builtin_ffs(bit_set);
+                    bit_index = first_one(bit_set) - 1;
 
                     position.x = bit_set_index % ints_per_row + bit_index;
                     position.y = bit_set_index / ints_per_row;
