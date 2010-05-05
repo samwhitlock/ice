@@ -8,7 +8,7 @@
 
 #include "ice.h"
 
-void read_pbm(const char const * filename, uint32_t ** state, int * width, int * height);
+void read_pbm(const char const * filename, uint32_t ** state, int * width, int * height, int * ones);
 
 #endif
 

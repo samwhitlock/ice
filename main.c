@@ -18,24 +18,31 @@ int main(int argc, char * argv[])
 {
     uint32_t * start_state;
     uint32_t * end_state;
-    int start_width, start_height;
-    int __attribute__((unused)) end_width, end_height;
+    int start_width, start_height, start_ones, end_ones, end_width, end_height;
 
     if (argc != 3)
     {
         printf(help_text, argv[0]);
         return 1;
     }
-
+    
     /* Read the PBMs */
-    read_pbm(argv[1], &start_state, &start_width, &start_height);
-    read_pbm(argv[2], &end_state, &start_width, &start_height);
+    read_pbm(argv[1], &start_state, &start_width, &start_height, &start_ones);
+    read_pbm(argv[2], &end_state, &end_width, &end_height, &end_ones);
 
+    if (start_ones != end_ones || start_width != end_width || start_height != end_height)
+    {
+        puts("IMPOSSIBLE");
+        return 0;
+    }
+    
     state_width = start_width;
     state_height = start_height;
+    state_ones = start_ones;
 
     if(find_path(start_state, end_state))
     {
+        //print solution
     }
     else
     {
@@ -44,5 +51,7 @@ int main(int argc, char * argv[])
 
     free(start_state);
     free(end_state);
+    
+    return 0;
 }
 

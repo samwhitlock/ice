@@ -24,6 +24,7 @@
 #define first_one __builtin_ffs
 #define leading_zeros __builtin_clz
 #define trailing_zeros __builtin_ctz
+#define ONES_THRESHOLD 6//fool with this later
 
 char direction_char[] = {
     [NORTH] = 'N',
@@ -39,8 +40,7 @@ enum flip
 };
 
 /* The number of positions that compose a state of the bits */
-int state_height;
-int state_width;
+int state_height, state_width, state_ones;
 size_t state_size;
 
 int ints_per_row;
@@ -309,7 +309,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
 
     add_move(start_state, NULL, NULL, 0);
 
-    #pragma omp parallel shared(found, done)
+    #pragma omp parallel if(state_ones>ONES_THRESHOLD) shared(found, done)
     {
         uint32_t * state;
         uint32_t * past_state;
@@ -344,7 +344,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
             printf("starting (%u)\n", omp_get_thread_num());
 
             /* Wait until we have something to do */
-            while (queues[omp_get_thread_num()].size == 0)
+            while (queues[omp_get_thread_num()].size == 0 && !done)
             {
                 #pragma omp flush(queues)
 
