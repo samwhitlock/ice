@@ -166,7 +166,7 @@ bool move(enum direction direction, const struct position * position,
                 {
                     bit_offset += trailing_zeros(bitSet);
                     memcpy(next_state, state, state_size);
-                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
                     return true;
                 }
             } else {
@@ -183,7 +183,7 @@ bool move(enum direction direction, const struct position * position,
                     //found!
                     bit_offset += trailing_zeros(bitSet);
                     memcpy(next_state, state, state_size);
-                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
                     return true;
                 } else {
                     bit_offset += 32;                    
@@ -206,7 +206,7 @@ bool move(enum direction direction, const struct position * position,
 
                     bit_offset += leading_zeros(bitSet);
                     memcpy(next_state, state, state_size);
-                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
                     return true;
                 }
             } else {
@@ -223,7 +223,7 @@ bool move(enum direction direction, const struct position * position,
                     //found!
                     bit_offset += leading_zeros(bitSet);
                     memcpy(next_state, state, state_size);
-                    state_move_bit(state, position->x, position->y, bit_offset, position->y);
+                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
                     return true;
                 } else {
                     bit_offset += 32;
