@@ -103,8 +103,6 @@ static inline int block_index_offset(const struct position * position)
 bool move(enum direction direction, const struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
-    printf("MOVE (%u, %u) %c\n", position->x, position->y, direction_char[direction]);
-
     if (direction == NORTH)
     {
         int y;
@@ -147,92 +145,49 @@ bool move(enum direction direction, const struct position * position,
             }
         }
     }
-    else
+    else if (direction == EAST)
     {
-        int state_offset = offset(position), bit_offset = position->x, init_index = block_index_offset(position);
-        uint32_t bitSet;
-        
-        if (direction == EAST)
-        {
-            //first stuff
-            bitSet =  init_index == 31 ? 0 : state[state_offset] >> (init_index + 1);
-            printf("In move EAST, shifting right by %u\n", init_index == 31 ? 0 : init_index+1);
-            if (bitSet != 0)//their are blocking bits to the EAST
-            {
-                //found!
-                if( trailing_zeros(bitSet) == 0 )
-                {
-                    return false;
-                } else
-                {
-                    bit_offset += trailing_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                    return true;
-                }
-            } else {
-                //add the number of zeros to the EAST to the offset
-                bit_offset += 32 - (init_index+1);
-            }
-            
-            for (++state_offset; state_offset % ints_per_row > 0; ++state_offset)
-            {
-                bitSet = state[state_offset];
-                
-                if(bitSet != 0)
-                {
-                    //found!
-                    bit_offset += trailing_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                    return true;
-                } else {
-                    bit_offset += 32;                    
-                }
-            }
-        }
-        else//direction == WEST
-        {
-            //first stuff
-            bitSet = init_index == 0 ? 0 : state[state_offset] << (32 - init_index);
-            printf("In move WEST, shifting right by %u\n", init_index == 0 ? 0 : 32-init_index);
-            
-            if (bitSet != 0)//their are blocking bits to the WEST
-            {
-                //found!
-                if( leading_zeros(bitSet) == 0 )
-                {
-                    return false;
-                } else 
-                {
+        int x;
 
-                    bit_offset -= leading_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                    return true;
-                }
-            } else {
-                //add the number of zeros to the WEST to the offset
-                bit_offset += init_index;
-            }
-            
-            for (--state_offset; state_offset % ints_per_row < ints_per_row - 1; --state_offset)
+        if (position->x == state_width - 1 || state_bit(state, position->x + 1, position->y))
+        {
+            return false;
+        }
+
+        for (x = position->x + 2; x < state_width; ++x)
+        {
+            if (state_bit(state, x, position->y))
             {
-                bitSet = state[state_offset];
-                
-                if(bitSet != 0)
-                {
-                    //found!
-                    bit_offset -= leading_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                    return true;
-                } else {
-                    bit_offset -= 32;
-                }
+                memcpy(next_state, state, state_size);
+                state_set_bit(next_state, x - 1, position->y);
+                state_clear_bit(next_state, position->x, position->y);
+
+                return true;
             }
         }
-    } 
+    }
+    else /* direction == WEST */
+    {
+        int x;
+
+        if (position->x == 0 || state_bit(state, position->x - 1, position->y))
+        {
+            return false;
+        }
+
+        for (x = position->x - 2; x >= 0; --x)
+        {
+            if (state_bit(state, x, position->y))
+            {
+                memcpy(next_state, state, state_size);
+                state_set_bit(next_state, x + 1, position->y);
+                state_clear_bit(next_state, position->x, position->y);
+
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
