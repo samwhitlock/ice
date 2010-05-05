@@ -12,7 +12,6 @@
 
 #include "ice.h"
 #include "queue.h"
-#include "bit_twiddle.h"
 
 #ifdef DEBUG
 #define DEBUG_PRINT(format, args...) printf(format, ## args)
