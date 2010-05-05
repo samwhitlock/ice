@@ -80,6 +80,8 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
 bool move(enum direction direction, struct position * position,
     const uint32_t * current_state, uint32_t * next_state);
 
+void print_state(const uint32_t * state);
+
 #endif
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax

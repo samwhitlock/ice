@@ -137,6 +137,12 @@ static bool test_move_north()
 
     if (!move(NORTH, &position, state, next_state))
     {
+        puts("next_state:");
+        print_state(next_state);
+
+        puts("expected_next_state:");
+        print_state(expected_next_state);
+
         return false;
     }
 
@@ -266,6 +272,12 @@ static bool test_move_south()
 
     if (!move(SOUTH, &position, state, next_state))
     {
+        puts("next_state:");
+        print_state(next_state);
+
+        puts("expected_next_state:");
+        print_state(expected_next_state);
+
         return false;
     }
 
@@ -395,6 +407,12 @@ static bool test_move_east()
 
     if (!move(EAST, &position, state, next_state))
     {
+        puts("next_state:");
+        print_state(next_state);
+
+        puts("expected_next_state:");
+        print_state(expected_next_state);
+
         return false;
     }
 
@@ -524,6 +542,12 @@ static bool test_move_west()
 
     if (!move(WEST, &position, state, next_state))
     {
+        puts("next_state:");
+        print_state(next_state);
+
+        puts("expected_next_state:");
+        print_state(expected_next_state);
+
         return false;
     }
 

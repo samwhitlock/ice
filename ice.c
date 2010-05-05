@@ -238,6 +238,22 @@ bool move(enum direction direction, struct position * position,
     return false;
 }
 
+void print_state(const uint32_t * state)
+{
+    int x, y;
+
+    for (y = 0; y < state_height; ++y)
+    {
+        for (x = 0; x < state_width; ++x)
+        {
+            putchar(((state[y * ints_per_row + x / 32] >> (x % 32)) & 1) + '0');
+        }
+        putchar('\n');
+    }
+
+    putchar('\n');
+}
+
 bool states_equal(const uint32_t * first, const uint32_t * second)
 {
     return memcmp(first, second, state_size) == 0;
