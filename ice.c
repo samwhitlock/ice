@@ -145,45 +145,99 @@ bool move(enum direction direction, const struct position * position,
             }
         }
     }
-    else if (direction == EAST)
+    else
     {
-        int x;
-
-        if (position->x == state_width - 1 || state_bit(state, position->x + 1, position->y))
+        int state_offset = offset(position), bit_offset = position->x, init_index = block_index_offset(position);
+        uint32_t bitSet;
+        
+        if (direction == EAST)
         {
-            return false;
-        }
-
-        for (x = position->x + 2; x < state_width; ++x)
-        {
-            if (state_bit(state, x, position->y))
+            //first stuff
+            bitSet =  init_index == 31 ? 0 : state[state_offset] >> (init_index + 1);
+            if (bitSet != 0)//their are blocking bits to the EAST
             {
-                memcpy(next_state, state, state_size);
-                state_set_bit(next_state, x - 1, position->y);
-                state_clear_bit(next_state, position->x, position->y);
-
-                return true;
+                //found!
+                if( trailing_zeros(bitSet) == 0 )
+                {
+                    return false;
+                } else
+                {
+                    bit_offset += trailing_zeros(bitSet);
+                    memcpy(next_state, state, state_size);
+                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                    return true;
+                }
+            } else {
+                //add the number of zeros to the EAST to the offset
+                bit_offset += 32 - (init_index+1);
+            }
+            
+            for (++state_offset; state_offset % ints_per_row > 0; ++state_offset)
+            {
+                bitSet = state[state_offset];
+                
+                if(bitSet != 0)
+                {
+                    if( trailing_zeros(bitSet) == 0 && bit_offset == position->x )
+                    {
+                        //this is where the error is happening
+                        return false;
+                    } else {
+                        //found!
+                        bit_offset += trailing_zeros(bitSet);
+                        memcpy(next_state, state, state_size);
+                        state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                        return true;
+                    }
+                } else {
+                    bit_offset += 32;                    
+                }
             }
         }
-    }
-    else /* direction == WEST */
-    {
-        int x;
-
-        if (position->x == 0 || state_bit(state, position->x - 1, position->y))
+        else//direction == WEST
         {
-            return false;
-        }
-
-        for (x = position->x - 2; x >= 0; --x)
-        {
-            if (state_bit(state, x, position->y))
+            //first stuff
+            bitSet = init_index == 0 ? 0 : state[state_offset] << (32 - init_index);
+            
+            if (bitSet != 0)//their are blocking bits to the WEST
             {
-                memcpy(next_state, state, state_size);
-                state_set_bit(next_state, x + 1, position->y);
-                state_clear_bit(next_state, position->x, position->y);
+                //found!
+                if( leading_zeros(bitSet) == 0 )
+                {
+                    return false;
+                } else 
+                {
 
-                return true;
+                    bit_offset -= leading_zeros(bitSet);
+                    memcpy(next_state, state, state_size);
+                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                    return true;
+                }
+            } else {
+                //add the number of zeros to the WEST to the offset
+                bit_offset -= init_index;
+            }
+            
+            for (--state_offset; state_offset % ints_per_row < ints_per_row - 1; --state_offset)
+            {
+                bitSet = state[state_offset];
+                
+                if(bitSet != 0)
+                {
+                    //found!
+                    if (leading_zeros(bitSet)==0 && bit_offset == position->x)
+                    {
+                        //problem is here
+                        return false;
+                    } else {
+                        bit_offset -= leading_zeros(bitSet);
+                        memcpy(next_state, state, state_size);
+                        state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                        return true;
+                    }
+                } else {
+                    bit_offset -= 32;
+                }
             }
         }
     }
