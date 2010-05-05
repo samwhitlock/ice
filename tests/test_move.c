@@ -5,9 +5,9 @@
 
 /* Directions:
  *
- *    N
- * W -+- E
- *    S
+ *   N
+ * W-|-E
+ *   S
  */
 
 uint32_t next_state[ints_per_state];
