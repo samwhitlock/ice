@@ -137,16 +137,22 @@ static bool test_move_north()
 
     if (!move(NORTH, &position, state, next_state))
     {
-        puts("next_state:");
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
         print_state(next_state);
 
-        puts("expected_next_state:");
+        puts("- expected_next_state:");
         print_state(expected_next_state);
 
         return false;
     }
 
-    return states_equal(expected_next_state, next_state);
+    return true;
 }
 /********** NORTH }}} **********/
 
@@ -272,16 +278,22 @@ static bool test_move_south()
 
     if (!move(SOUTH, &position, state, next_state))
     {
-        puts("next_state:");
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
         print_state(next_state);
 
-        puts("expected_next_state:");
+        puts("- expected_next_state:");
         print_state(expected_next_state);
 
         return false;
     }
 
-    return states_equal(expected_next_state, next_state);
+    return true;
 }
 /********** SOUTH }}} **********/
 
@@ -407,16 +419,22 @@ static bool test_move_east()
 
     if (!move(EAST, &position, state, next_state))
     {
-        puts("next_state:");
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
         print_state(next_state);
 
-        puts("expected_next_state:");
+        puts("- expected_next_state:");
         print_state(expected_next_state);
 
         return false;
     }
 
-    return states_equal(expected_next_state, next_state);
+    return true;
 }
 /********** EAST }}} **********/
 
@@ -542,16 +560,22 @@ static bool test_move_west()
 
     if (!move(WEST, &position, state, next_state))
     {
-        puts("next_state:");
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
         print_state(next_state);
 
-        puts("expected_next_state:");
+        puts("- expected_next_state:");
         print_state(expected_next_state);
 
         return false;
     }
 
-    return states_equal(expected_next_state, next_state);
+    return true;
 }
 /********** WEST }}} **********/
 
