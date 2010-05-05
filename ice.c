@@ -156,7 +156,6 @@ bool move(enum direction direction, const struct position * position,
         {
             //first stuff
             bitSet =  init_index == 31 ? 0 : state[state_offset] >> (init_index + 1);
-            printf("In move EAST, shifting right by %u\n", init_index == 31 ? 0 : init_index+1);
             if (bitSet != 0)//their are blocking bits to the EAST
             {
                 //found!
@@ -181,8 +180,9 @@ bool move(enum direction direction, const struct position * position,
                 
                 if(bitSet != 0)
                 {
-                    if( trailing_zeros(bitSet) == 0 )
+                    if( trailing_zeros(bitSet) == 0 && bit_offset == position->x )
                     {
+                        //this is where the error is happening
                         return false;
                     } else {
                         //found!
@@ -200,7 +200,6 @@ bool move(enum direction direction, const struct position * position,
         {
             //first stuff
             bitSet = init_index == 0 ? 0 : state[state_offset] << (32 - init_index);
-            printf("In move WEST, shifting right by %u\n", init_index == 0 ? 0 : 32-init_index);
             
             if (bitSet != 0)//their are blocking bits to the WEST
             {
@@ -228,8 +227,9 @@ bool move(enum direction direction, const struct position * position,
                 if(bitSet != 0)
                 {
                     //found!
-                    if (leading_zeros(bitSet)==0)
+                    if (leading_zeros(bitSet)==0 && bit_offset == position->x)
                     {
+                        //problem is here
                         return false;
                     } else {
                         bit_offset -= leading_zeros(bitSet);
