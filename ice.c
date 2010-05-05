@@ -83,7 +83,7 @@ static inline void state_clear_bit(const uint32_t * state, int x, int y)
     *state_bitset(state, x, y) &= ~(1 << (x % 32));
 }
 
-bool move(enum direction direction, struct position * position,
+bool move(enum direction direction, const struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
     printf("MOVE (%u, %u) %c\n", position->x, position->y, direction_char[direction]);
@@ -120,97 +120,33 @@ bool move(enum direction direction, struct position * position,
             }
         }
     }
-    else /* Direction is EAST or WEST */
+    else
     {
-        uint32_t bitset = 0;
-        int bitset_index;
-
-        /* Process first bitset */
-        if ((direction == EAST && position->x % 32 < 30 &&
-                (bitset = (*state_bitset(state, position->x, position->y) >>
-                    ((position->x % 32) + 2)))) ||
-            (direction == WEST && position->x % 32 >= 2 &&
-                (bitset = (*state_bitset(state, position->x, position->y) <<
-                    (32 - (position->x % 32) + 2)))))
-        {
-            memcpy(next_state, state, state_size);
-
-            if (direction == EAST)
-            {
-                state_set_bit(next_state, position->x + trailing_zeros(bitset) + 1, position->y);
-            }
-            else
-            {
-                state_set_bit(next_state, position->x - leading_zeros(bitset) - 2, position->y);
-            }
-
-            state_clear_bit(next_state, position->x, position->y);
-
-            return true;
-        }
-
-        /* FIXME: The stuff below is untested! */
-
-        /* Locate the first bitset that has bits set */
+        int state_offset = offset(position), bit_offset = position->x, init_index = block_index_offset(position);//FIXME: write these inline function
+        uint32_t bitSet;
+        
         if (direction == EAST)
         {
-            for (bitset_index = position->x / 32 + 1; bitset_index < ints_per_row; ++bitset_index)
+            //first stuff
+            bitSet = state[state_offset] >> 
+            
+            
+            for (++state_offset; state_offset % ints_per_row > 0; ++state_offset)
             {
-                if (state[position->y * ints_per_row + bitset_index * 32])
-                {
-                    bitset = state[position->y * ints_per_row + bitset_index * 32];
-                    break;
-                }
+                
             }
         }
         else
         {
-            for (bitset_index = position->x / 32 - 1; bitset_index >= 0; --bitset_index)
+            //first stuff
+            
+            
+            for (--state_offset; state_offset % ints_per_row < ints_per_row - 1; --state_offset)
             {
-                if (state[position->y * ints_per_row + bitset_index * 32])
-                {
-                    bitset = state[position->y * ints_per_row + bitset_index * 32];
-                    break;
-                }
+                
             }
         }
-
-        if (!bitset) return false;
-
-        if ((direction == EAST && trailing_zeros(bitset) == 0) &&
-            (direction == WEST && leading_zeros(bitset) == 0))
-        {
-            if ((direction == EAST && position->x == 31) ||
-                (direction == WEST && position->x == 0))
-            {
-                return false;
-            }
-            else
-            {
-                memcpy(next_state, state, state_size);
-
-                if (direction == EAST)
-                {
-                    state_set_bit(next_state, position->x / 32 + 31, position->y);
-                }
-                else
-                {
-                    state_set_bit(next_state, position->x / 32, position->y);
-                }
-
-                state_clear_bit(next_state, position->x, position->y);
-
-                return true;
-            }
-        }
-
-        memcpy(next_state, state, state_size);
-        state_set_bit(next_state, bitset_index * 32 + trailing_zeros(bitset) - 1, position->y);
-        state_clear_bit(next_state, position->x, position->y);
-
-        return true;
-    }
-
+    } 
     return false;
 }
 
