@@ -340,7 +340,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
 
     add_move(start_state, NULL, NULL, 0);
 
-    #pragma omp parallel if(state_ones>ONES_THRESHOLD) shared(found, done)
+    #pragma omp parallel shared(found, done, threads_waiting, jobs)
     {
         uint32_t * state;
         uint32_t * past_state;
@@ -374,26 +374,29 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
             #pragma omp critical
             printf("starting (%u)\n", omp_get_thread_num());
 
+            #pragma omp atomic
+            ++threads_waiting;
+
             /* Wait until we have something to do */
             while (queues[omp_get_thread_num()].size == 0 && !done)
             {
-                #pragma omp flush(queues, done)
+                #pragma omp flush(queues, done, threads_waiting)
 
-/*
                 if (threads_waiting == omp_get_num_threads())
                 {
                     #pragma omp single
-                    for (queue_index = 0; queue_index < omp_get_num_threads(); ++queue_index)
                     {
-                        if (queues[queue_index].size > 0) break;
-                    }
+                        for (queue_index = 0; queue_index < omp_get_num_threads(); ++queue_index)
+                        {
+                            if (queues[queue_index].size > 0) break;
+                        }
 
-                    if (queue_index == omp_get_num_threads())
-                    {
-                        done = true;
+                        if (queue_index == omp_get_num_threads())
+                        {
+                            done = true;
+                        }
                     }
                 }
-*/
             }
 
             #pragma omp atomic
@@ -455,9 +458,6 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                     bitset &= ~(1 << bit_index);
                 }
             }
-
-            #pragma omp atomic
-            ++threads_waiting;
         }
     }
 
