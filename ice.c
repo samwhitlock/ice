@@ -255,6 +255,7 @@ void print_state(const uint32_t * state)
         {
             putchar(((state[y * ints_per_row + x / 32] >> (x % 32)) & 1) + '0');
         }
+
         putchar('\n');
     }
 
@@ -342,6 +343,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
     #pragma omp parallel shared(found, done)
     {
         uint32_t * state;
+        uint32_t * past_state;
         uint32_t next_state[ints_per_state];
 
         uint32_t bit_set;
@@ -369,6 +371,9 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
 
         while (!done)
         {
+            #pragma omp critical
+            printf("starting (%u)\n", omp_get_thread_num());
+
             /* Wait until we have something to do */
             while (queues[omp_get_thread_num()].size == 0)
             {
@@ -393,6 +398,12 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
             --threads_waiting;
 
             state = queue_pop(&queues[omp_get_thread_num()]);
+
+            #pragma omp critical
+            {
+                printf("processing state: 0x%x (%u)\n", state, omp_get_thread_num());
+                print_state(state);
+            }
 
             for (bit_set_index = 0; bit_set_index < ints_per_state && !done; ++bit_set_index)
             {
@@ -426,10 +437,10 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                                 }
                                 else
                                 {
-                                    add_move(next_state, state, &position, direction);
-
-                                    queue_insert(&queues[jobs++ % omp_get_num_threads()], score,
-                                        add_move(next_state, state, &position, direction));
+                                    past_state = add_move(next_state, state, &position, direction);
+                                    printf("adding job to queue %u: 0x%x (%u)\n", jobs % omp_get_num_threads(),
+                                        past_state, omp_get_thread_num());
+                                    queue_insert(&queues[jobs++ % omp_get_num_threads()], score, past_state);
                                 }
                             }
                         }
