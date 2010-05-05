@@ -181,11 +181,15 @@ bool move(enum direction direction, const struct position * position,
                 
                 if(bitSet != 0)
                 {
-                    //found!
-                    bit_offset += trailing_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                    return true;
+                    if( trailing_zeros(bitSet) == 0 ) {
+                        return false;
+                    } else {   
+                        //found!
+                        bit_offset += trailing_zeros(bitSet);
+                        memcpy(next_state, state, state_size);
+                        state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                        return true;
+                    }
                 } else {
                     bit_offset += 32;                    
                 }
@@ -223,10 +227,15 @@ bool move(enum direction direction, const struct position * position,
                 if(bitSet != 0)
                 {
                     //found!
-                    bit_offset -= leading_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                    return true;
+                    if (leading_zeros(bitSet)==0)
+                    {
+                        return false;
+                    } else {
+                        bit_offset -= leading_zeros(bitSet);
+                        memcpy(next_state, state, state_size);
+                        state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                        return true;
+                    }
                 } else {
                     bit_offset -= 32;
                 }
