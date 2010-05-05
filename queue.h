@@ -14,7 +14,7 @@ struct queue_node
 {
     unsigned int score;
 
-    struct position * state;
+    uint32_t * state;
 };
 
 struct queue
@@ -27,9 +27,9 @@ struct queue
 
 void queue_initialize(struct queue * queue);
 
-struct position * queue_pop(struct queue * queue);
+uint32_t * queue_pop(struct queue * queue);
 
-void queue_insert(struct queue * queue, unsigned int score, struct position * positions);
+void queue_insert(struct queue * queue, unsigned int score, uint32_t * positions);
 
 #endif
 

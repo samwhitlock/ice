@@ -31,9 +31,9 @@ void queue_initialize(struct queue * queue)
     omp_init_lock(&queue->lock);
 }
 
-struct position * queue_pop(struct queue * queue)
+uint32_t * queue_pop(struct queue * queue)
 {
-    struct position * state = queue->nodes[0].state;
+    uint32_t * state = queue->nodes[0].state;
 
     omp_set_lock(&queue->lock);
 
@@ -72,7 +72,7 @@ struct position * queue_pop(struct queue * queue)
     return state;
 }
 
-void queue_insert(struct queue * queue, unsigned int score, struct position * state)
+void queue_insert(struct queue * queue, unsigned int score, uint32_t * state)
 {
     int parent_index;
     int index = queue->size++;
