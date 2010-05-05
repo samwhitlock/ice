@@ -436,6 +436,125 @@ static bool test_move_east()
 
     return true;
 }
+
+static bool test_invalid_block_border_east()
+{
+    /* State:
+     *
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 | 1 0 0 0
+     *
+     * Bit to move:         (31, 0)
+     * Direction to move:   East
+     * Expected result:     Fail (Blocked by (32, 0))
+     */
+
+    const uint32_t state[] = {
+        0x80000000, 0x1
+    };
+
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 31, 0 };
+
+    return !move(EAST, &position, state, next_state);
+}
+
+static bool test_move_border_east()
+{
+    /* State:
+     *
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 | 1 0 0 0
+     *
+     * Expected next state:
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 | 1 0 0 0
+     *
+     * Bit to move:         (30, 0)
+     * Direction to move:   East
+     * Expected result:     Move to (31, 0)
+     */
+
+    const uint32_t state[] = {
+        0x40000000, 0x1
+    };
+
+    uint32_t next_state[ints_per_state];
+
+    const uint32_t expected_next_state[] = {
+        0x80000000, 0x1
+    };
+
+    struct position position = { 30, 0 };
+
+    if (!move(EAST, &position, state, next_state))
+    {
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
+        print_state(next_state);
+
+        puts("- expected_next_state:");
+        print_state(expected_next_state);
+
+        return false;
+    }
+
+    return true;
+}
+
+static bool test_move_border_middle_east()
+{
+    /* State:
+     *
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 | 0 0 1 0
+     *
+     * Expected next state:
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 | 0 1 1 0
+     *
+     * Bit to move:         (30, 0)
+     * Direction to move:   East
+     * Expected result:     Move to (31, 0)
+     */
+
+    const uint32_t state[] = {
+        0x20000000, 0x4
+    };
+
+    uint32_t next_state[ints_per_state];
+
+    const uint32_t expected_next_state[] = {
+        0x0, 0x6
+    };
+
+    struct position position = { 29, 0 };
+
+    if (!move(EAST, &position, state, next_state))
+    {
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
+        print_state(next_state);
+
+        puts("- expected_next_state:");
+        print_state(expected_next_state);
+
+        return false;
+    }
+
+    return true;
+}
 /********** EAST }}} **********/
 
 /********** WEST {{{ **********/
@@ -577,10 +696,130 @@ static bool test_move_west()
 
     return true;
 }
+
+static bool test_invalid_block_border_west()
+{
+    /* State:
+     *
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 | 1 0 0 0
+     *
+     * Bit to move:         (32, 0)
+     * Direction to move:   East
+     * Expected result:     Fail (Blocked by (31, 0))
+     */
+
+    const uint32_t state[] = {
+        0x80000000, 0x1
+    };
+
+    uint32_t next_state[ints_per_state];
+
+    struct position position = { 32, 0 };
+
+    return !move(WEST, &position, state, next_state);
+}
+
+static bool test_move_border_west()
+{
+    /* State:
+     *
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 | 0 1 0 0
+     *
+     * Expected next state:
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 | 1 0 0 0
+     *
+     * Bit to move:         (33, 0)
+     * Direction to move:   East
+     * Expected result:     Move to (32, 0)
+     */
+
+    const uint32_t state[] = {
+        0x80000000, 0x2
+    };
+
+    uint32_t next_state[ints_per_state];
+
+    const uint32_t expected_next_state[] = {
+        0x80000000, 0x1
+    };
+
+    struct position position = { 33, 0 };
+
+    if (!move(WEST, &position, state, next_state))
+    {
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
+        print_state(next_state);
+
+        puts("- expected_next_state:");
+        print_state(expected_next_state);
+
+        return false;
+    }
+
+    return true;
+}
+
+static bool test_move_border_middle_west()
+{
+    /* State:
+     *
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 | 0 0 1 0
+     *
+     * Expected next state:
+     * |LSB                                                       MSB|   |LSB
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 | 0 0 1 0
+     *
+     * Bit to move:         (34, 0)
+     * Direction to move:   East
+     * Expected result:     Move to (30, 0)
+     */
+
+    const uint32_t state[] = {
+        0x20000000, 0x4
+    };
+
+    uint32_t next_state[ints_per_state];
+
+    const uint32_t expected_next_state[] = {
+        0x60000000, 0x4
+    };
+
+    struct position position = { 34, 0 };
+
+    if (!move(WEST, &position, state, next_state))
+    {
+        puts("- move failed, expected success");
+
+        return false;
+    }
+    else if (!states_equal(expected_next_state, next_state))
+    {
+        puts("- next_state:");
+        print_state(next_state);
+
+        puts("- expected_next_state:");
+        print_state(expected_next_state);
+
+        return false;
+    }
+
+    return true;
+}
 /********** WEST }}} **********/
 
 int main(int argc, char * argv[])
 {
+    /********** 8x8 **********/
     state_height = 8;
     state_width = 8;
     ints_per_row = 1;
@@ -606,6 +845,23 @@ int main(int argc, char * argv[])
     RUN_TEST(test_invalid_edge_west);
     RUN_TEST(test_invalid_block_west);
     RUN_TEST(test_move_west);
+
+    /********** 34x1 **********/
+    state_height = 1;
+    state_width = 34;
+    ints_per_row = 2;
+    ints_per_state = 2;
+    state_size = 8;
+
+    /* East */
+    RUN_TEST(test_invalid_block_border_east);
+    RUN_TEST(test_move_border_east);
+    RUN_TEST(test_move_border_middle_east);
+
+    /* West */
+    RUN_TEST(test_invalid_block_border_west);
+    RUN_TEST(test_move_border_west);
+    RUN_TEST(test_move_border_middle_west);
 
     return EXIT_STATUS;
 }
