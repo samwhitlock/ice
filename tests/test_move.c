@@ -846,9 +846,9 @@ int main(int argc, char * argv[])
     RUN_TEST(test_invalid_block_west);
     RUN_TEST(test_move_west);
 
-    /********** 34x1 **********/
+    /********** 36x1 **********/
     state_height = 1;
-    state_width = 34;
+    state_width = 36;
     ints_per_row = 2;
     ints_per_state = 2;
     state_size = 8;
