@@ -313,8 +313,8 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
         uint32_t * past_state;
         uint32_t next_state[ints_per_state];
 
-        uint32_t bit_set;
-        int bit_set_index;
+        uint32_t bitset;
+        int bitset_index;
         char bit_index;
 
         struct position position;
@@ -372,16 +372,16 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                 print_state(state);
             }
 
-            for (bit_set_index = 0; bit_set_index < ints_per_state && !done; ++bit_set_index)
+            for (bitset_index = 0; bitset_index < ints_per_state && !done; ++bitset_index)
             {
-                bit_set = state[bit_set_index];
+                bitset = state[bitset_index];
 
-                while (bit_set && !done)
+                while (bitset && !done)
                 {
-                    bit_index = first_one(bit_set) - 1;
+                    bit_index = first_one(bitset) - 1;
 
-                    position.x = bit_set_index % ints_per_row + bit_index;
-                    position.y = bit_set_index / ints_per_row;
+                    position.x = bitset_index % ints_per_row + bit_index;
+                    position.y = bitset_index / ints_per_row;
 
                     for (direction = NORTH; direction <= WEST && !done; ++direction)
                     {
@@ -413,7 +413,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                         }
                     }
 
-                    bit_set &= ~(1 << bit_index);
+                    bitset &= ~(1 << bit_index);
                 }
             }
 
