@@ -777,7 +777,7 @@ static bool test_move_border_middle_west()
      *
      * Expected next state:
      * |LSB                                                       MSB|   |LSB
-     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 | 0 0 1 0
+     * 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 | 0 0 0 0
      *
      * Bit to move:         (34, 0)
      * Direction to move:   East
@@ -791,7 +791,7 @@ static bool test_move_border_middle_west()
     uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
-        0x60000000, 0x4
+        0x60000000, 0x0
     };
 
     struct position position = { 34, 0 };
