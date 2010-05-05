@@ -88,7 +88,7 @@ bool move(enum direction direction, struct position * position,
 {
     printf("MOVE (%u, %u) %c\n", position->x, position->y, direction_char[direction]);
 
-    if (direction == NORTH)
+    if (direction == NORTH && position->y > 0 && !state_bit(state, position->x, position->y-1))
     {
         int y;
 
@@ -104,7 +104,7 @@ bool move(enum direction direction, struct position * position,
             }
         }
     }
-    else if (direction == SOUTH)
+    else if (direction == SOUTH && position->y < state_height - 1 && !state_bit(state, position->x, position->y+1))
     {
         int y;
 
