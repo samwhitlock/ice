@@ -27,16 +27,21 @@ void queue_initialize(struct queue * queue)
     queue->nodes = malloc(queue->capacity * sizeof(struct queue_node));
 }
 
-struct move_tree * queue_pop(struct queue * queue)
+void queue_finalize(struct queue * queue)
 {
-    struct move_tree * move_node;
+    free(queue->nodes);
+}
+
+const struct move_tree * queue_pop(struct queue * queue)
+{
+    const struct move_tree * move_node;
 
     move_node = queue->nodes[0].move_node;
 
     if (--queue->size > 0)
     {
         unsigned int score = queue->nodes[queue->size].score;
-        struct move_tree * move_node = queue->nodes[queue->size].move_node;
+        const struct move_tree * move_node = queue->nodes[queue->size].move_node;
 
         int index;
         int min_child_index;
@@ -66,7 +71,7 @@ struct move_tree * queue_pop(struct queue * queue)
     return move_node;
 }
 
-void queue_insert(struct queue * queue, unsigned int score, struct move_tree * move_node)
+void queue_insert(struct queue * queue, unsigned int score, const struct move_tree * move_node)
 {
     int parent_index;
     int index = queue->size++;

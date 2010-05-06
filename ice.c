@@ -96,27 +96,32 @@ static void finalize_move_tree()
     free(move_tree);
 }
 
-static inline uint32_t * state_bitset(const uint32_t * state, int x, int y)
+static inline const uint32_t * state_bitset_const(const uint32_t * state, int x, int y)
+{
+    return &state[y * ints_per_row + x / 32];
+}
+
+static inline uint32_t * state_bitset(uint32_t * state, int x, int y)
 {
     return &state[y * ints_per_row + x / 32];
 }
 
 static inline bool state_bit(const uint32_t * state, int x, int y)
 {
-    return *state_bitset(state, x, y) & (1 << (x % 32));
+    return *state_bitset_const(state, x, y) & (1 << (x % 32));
 }
 
-static inline void state_set_bit(const uint32_t * state, int x, int y)
+static inline void state_set_bit(uint32_t * state, int x, int y)
 {
     *state_bitset(state, x, y) |= 1 << (x % 32);
 }
 
-static inline void state_clear_bit(const uint32_t * state, int x, int y)
+static inline void state_clear_bit(uint32_t * state, int x, int y)
 {
     *state_bitset(state, x, y) &= ~(1 << (x % 32));
 }
 
-static inline void state_move_bit(const uint32_t * state, int from_x, int from_y, int to_x, int to_y)
+static inline void state_move_bit(uint32_t * state, int from_x, int from_y, int to_x, int to_y)
 {
     state_clear_bit(state, from_x, from_y);
     state_set_bit(state, to_x, to_y);
@@ -422,8 +427,8 @@ static void * process_jobs(void * generic_thread_id)
 
     int queue_index;
 
-    uint32_t * state;
-    struct move_tree * move_node;
+    const uint32_t * state;
+    const struct move_tree * move_node;
     struct move_tree * next_move_node;
     uint32_t next_state[ints_per_state];
 
@@ -493,8 +498,6 @@ static void * process_jobs(void * generic_thread_id)
 
                             if (score == 0)
                             {
-                                int id;
-
                                 /* Huzzah! We found it! */
                                 pthread_mutex_lock(&terminate_lock);
 
