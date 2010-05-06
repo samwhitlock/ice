@@ -315,7 +315,7 @@ static inline int x_position(int bitset_index, int bit_index)
 
 static inline int y_position(int bitset_index, int bit_index)
 {
-    return ((bitset_index * 32) + bit_index) / 32;
+    return ((bitset_index * 32) + bit_index) / state_width;
 }
 
 static void terminate_thread(int signal)
