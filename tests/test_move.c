@@ -46,7 +46,7 @@ static bool test_invalid_edge_north()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 3, 3 };
 
@@ -83,7 +83,7 @@ static bool test_invalid_block_north()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 3, 3 };
 
@@ -120,7 +120,7 @@ static bool test_move_north()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x08,
@@ -187,7 +187,7 @@ static bool test_invalid_edge_south()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 3, 3 };
 
@@ -224,7 +224,7 @@ static bool test_invalid_block_south()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 3, 3 };
 
@@ -261,7 +261,7 @@ static bool test_move_south()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x00,
@@ -328,7 +328,7 @@ static bool test_invalid_edge_east()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 3, 3 };
 
@@ -365,7 +365,7 @@ static bool test_invalid_block_east()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 3, 3 };
 
@@ -402,7 +402,7 @@ static bool test_move_east()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x00,
@@ -453,7 +453,7 @@ static bool test_invalid_block_border_east()
         0x80000000, 0x1
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 31, 0 };
 
@@ -480,7 +480,7 @@ static bool test_move_border_east()
         0x40000000, 0x1
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x80000000, 0x1
@@ -528,7 +528,7 @@ static bool test_move_border_middle_east()
         0x20000000, 0x4
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x0, 0x6
@@ -588,7 +588,7 @@ static bool test_invalid_edge_west()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 3, 3 };
 
@@ -627,7 +627,7 @@ static bool test_invalid_block_west()
 
     struct position position = { 3, 3 };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     return !move(WEST, &position, state, next_state);
 }
@@ -662,7 +662,7 @@ static bool test_move_west()
         0x00
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x00,
@@ -713,7 +713,7 @@ static bool test_invalid_block_border_west()
         0x80000000, 0x1
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     struct position position = { 32, 0 };
 
@@ -740,7 +740,7 @@ static bool test_move_border_west()
         0x80000000, 0x2
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x80000000, 0x1
@@ -788,7 +788,7 @@ static bool test_move_border_middle_west()
         0x20000000, 0x4
     };
 
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
         0x60000000, 0x0
@@ -822,7 +822,9 @@ int main(int argc, char * argv[])
     /********** 8x8 **********/
     state_height = 8;
     state_width = 8;
-    state_size = 2;
+    ints_per_row = 1;
+    ints_per_state = 8;
+    state_size = 32;
 
     /* North */
     RUN_TEST(test_invalid_edge_north);
@@ -847,7 +849,9 @@ int main(int argc, char * argv[])
     /********** 36x1 **********/
     state_height = 1;
     state_width = 36;
-    state_size = 2;
+    ints_per_row = 2;
+    ints_per_state = 2;
+    state_size = 8;
 
     /* East */
     RUN_TEST(test_invalid_block_border_east);

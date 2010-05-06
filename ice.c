@@ -49,7 +49,7 @@ enum flip
 };
 
 /* The number of positions that compose a state of the bits */
-int state_height, state_width, state_ones;
+int state_height, state_width, state_ones, ints_per_state;
 size_t state_size;
 
 struct move_tree * move_tree = NULL;
@@ -159,7 +159,7 @@ bool move(enum direction direction, const struct position * position,
         }
     } else if (direction == SOUTH)
     {
-        for (int x = position->x, y = position->y+1; y < state_height; ++y, first = false)
+        for (int x = position->x, y = position->y+1; y < state_height; ++y, first = false)//FIXME: generate num_rows somewhere
         {
             if (get_bit(x, y, state) != 0)
             {
@@ -434,7 +434,8 @@ bool find_path(const uint32_t * start, const uint32_t * end)
 
     printf("starting %u threads\n", thread_count);
 
-    state_size = ((state_width * state_height) / 32) + ((state_width * state_height)%32) > 0 ? 1 : 0;//This is still valid if state_width and state_height are defined here
+    ints_per_state = state_height * state_width / 32;
+    state_size = ints_per_state * 4;
 
     threads = alloca(thread_count * sizeof(pthread_t));
     queue_mutexes = alloca(thread_count * sizeof(pthread_mutex_t));
