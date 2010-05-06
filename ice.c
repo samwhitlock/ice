@@ -561,6 +561,12 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     ints_per_state = state_height * ints_per_row;
     state_size = ints_per_state * 4;
 
+    if (states_equal(start, end))
+    {
+        moves_length = 0;
+        return true;
+    }
+
     threads = alloca(thread_count * sizeof(pthread_t));
     queue_mutexes = alloca(thread_count * sizeof(pthread_mutex_t));
     queue_conditions = alloca(thread_count * sizeof(pthread_cond_t));
