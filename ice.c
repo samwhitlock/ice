@@ -80,7 +80,7 @@ pthread_cond_t * queue_conditions;
 pthread_mutex_t * queue_mutexes;
 struct queue * queues;
 
-pthread_mutex_t * impossible_lock;
+pthread_mutex_t * terminate_lock;
 pthread_rwlock_t * move_tree_lock;
 
 static void initialize_move_tree()
@@ -450,7 +450,7 @@ static void * process_jobs(void * generic_thread_id)
             if (threads_waiting == thread_count)
             {
                 printf("impossible\n");
-                pthread_mutex_lock(impossible_lock);
+                pthread_mutex_lock(terminate_lock);
 
                 terminate_all_threads();
                 return NULL;
@@ -496,6 +496,8 @@ static void * process_jobs(void * generic_thread_id)
                                 int id;
 
                                 /* Huzzah! We found it! */
+                                pthread_mutex_lock(terminate_lock);
+
                                 puts("found solution");
                                 found = true;
 
@@ -561,10 +563,10 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     queue_conditions = alloca(thread_count * sizeof(pthread_cond_t));
     queues = alloca(thread_count * sizeof(struct queue));
     move_tree_lock = alloca(sizeof(pthread_rwlock_t));
-    impossible_lock = alloca(sizeof(pthread_mutex_t));
+    terminate_lock = alloca(sizeof(pthread_mutex_t));
 
     pthread_rwlock_init(move_tree_lock, NULL);
-    pthread_mutex_init(impossible_lock, NULL);
+    pthread_mutex_init(terminate_lock, NULL);
 
     for (id = 0; id < thread_count; ++id)
     {
