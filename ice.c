@@ -250,7 +250,7 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
 
 static inline struct move_tree * past_move(int index)
 {
-    return ((void *) &move_tree[index]) + index * ints_per_state;//FIXME: possible issue here
+    return ((void *) &move_tree[index]) + index * ints_per_state;
 }
 
 static bool is_past_state(const uint32_t * state)
@@ -472,7 +472,8 @@ bool find_path(const uint32_t * start, const uint32_t * end)
 
     printf("starting %u threads\n", thread_count);
 
-    ints_per_state = state_height * state_width / 32;
+    ints_per_state = state_height * state_width / 32 +
+        (state_height * state_width % 32 == 0) ? 0 : 1;
     state_size = ints_per_state * 4;
 
     if (states_equal(start, end))
