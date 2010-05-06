@@ -42,7 +42,13 @@ int main(int argc, char * argv[])
 
     if(find_path(start_state, end_state))
     {
-        //print solution
+        int index;
+
+        for (index = 0; index < moves_length; ++index)
+        {
+            printf("%u %u %c\n", moves[index].position.x, moves[index].position.y,
+                direction_char[moves[index].direction]);
+        }
     }
     else
     {

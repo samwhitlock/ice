@@ -33,11 +33,17 @@ struct position
     int y;
 };
 
-struct move_tree
+struct move
 {
     struct position position;
     enum direction direction;
+};
+
+struct move_tree
+{
+    struct move move;
     struct move_tree * parent;
+    int depth;
     uint32_t state[];
 };
 
@@ -45,6 +51,8 @@ struct move_tree
 extern char direction_char[];
 extern int state_height, state_width, ints_per_row, ints_per_state, state_ones;
 extern size_t state_size;
+extern struct move * moves;
+extern int moves_length;
 
 /********** Function Declarations **********/
 

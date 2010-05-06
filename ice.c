@@ -50,6 +50,9 @@ struct move_tree * move_tree = NULL;
 int move_tree_length;
 int move_tree_capacity;
 
+struct move * moves;
+int moves_length;
+
 static void initialize_move_tree()
 {
     /* Initialize past states array */
@@ -310,7 +313,7 @@ static bool is_past_state(const uint32_t * state)
     return false;
 }
 
-static uint32_t * add_move(const uint32_t * state, const uint32_t * parent_state,
+static struct move_tree * add_move(const uint32_t * state, const struct move_tree * parent,
     const struct position * position, enum direction direction)
 {
     struct move_tree * move_node;
@@ -323,13 +326,25 @@ static uint32_t * add_move(const uint32_t * state, const uint32_t * parent_state
         move_tree = realloc(move_tree, move_tree_capacity * state_size);
     }
 
-    if (position) move_node->position = *position;
-    move_node->direction = direction;
-    move_node->parent = ((void *) parent_state) - ((long) &((struct move_tree *) NULL)->state);
+    if (position) move_node->move.position = *position;
+    move_node->move.direction = direction;
+    move_node->parent = parent;
+    move_node->depth = parent ? parent->depth + 1 : 0;
 
     memcpy(move_node->state, state, state_size);
 
-    return move_node->state;
+    return move_node;
+}
+
+void build_move_list(const struct move_tree * move_node)
+{
+    moves_length = move_node->depth;
+    moves = malloc(moves_length * sizeof(struct move));
+
+    for (; move_node->depth > 0; move_node = move_node->parent)
+    {
+        moves[move_node->depth - 1] = move_node->move;
+    }
 }
 
 bool find_path(const uint32_t * start_state, const uint32_t * end_state)
@@ -352,7 +367,8 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
     #pragma omp parallel shared(found, done, threads_waiting, jobs)
     {
         uint32_t * state;
-        uint32_t * past_state;
+        struct move_tree * move_node;
+        struct move_tree * next_move_node;
         uint32_t next_state[ints_per_state];
 
         uint32_t bitset;
@@ -373,7 +389,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                 queue_initialize(&queues[queue_index]);
             }
 
-            queue_insert(&queues[0], 0, past_move(0)->state);
+            queue_insert(&queues[0], 0, past_move(0));
         }
 
         threads_waiting = omp_get_num_threads();
@@ -408,10 +424,14 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                 }
             }
 
+            #pragma omp flush(done)
+            if (done) break;
+
             #pragma omp atomic
             --threads_waiting;
 
-            state = queue_pop(&queues[omp_get_thread_num()]);
+            move_node = queue_pop(&queues[omp_get_thread_num()]);
+            state = move_node->state;
 
             #pragma omp critical
             {
@@ -445,6 +465,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                                     omp_get_thread_num());
 
                                 score = calculate_score(next_state, end_state);
+                                next_move_node = add_move(next_state, move_node, &position, direction);
 
                                 if (score == 0)
                                 {
@@ -452,13 +473,14 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
                                     puts("found solution");
                                     done = true;
                                     found = true;
+
+                                    build_move_list(next_move_node);
                                 }
                                 else
                                 {
-                                    past_state = add_move(next_state, state, &position, direction);
                                     printf("adding job to queue %u: 0x%x (%u)\n", jobs % omp_get_num_threads(),
-                                        past_state, omp_get_thread_num());
-                                    queue_insert(&queues[jobs++ % omp_get_num_threads()], score, past_state);
+                                        next_move_node, omp_get_thread_num());
+                                    queue_insert(&queues[jobs++ % omp_get_num_threads()], score, next_move_node);
                                 }
                             }
                         }
