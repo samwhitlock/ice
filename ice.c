@@ -112,7 +112,6 @@ static inline void state_clear_bit(const uint32_t * state, int x, int y)
 
 static inline void state_move_bit(const uint32_t * state, int from_x, int from_y, int to_x, int to_y)
 {
-    printf("moving (%u, %u) to (%u, %u)\n", from_x, from_y, to_x, to_y);
     state_clear_bit(state, from_x, from_y);
     state_set_bit(state, to_x, to_y);
 }
@@ -430,6 +429,8 @@ static void * process_jobs(void * generic_thread_id)
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
+        printf("processing 0x%x\n", state);
+
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
             pthread_rwlock_rdlock(move_tree_lock);
@@ -448,11 +449,6 @@ static void * process_jobs(void * generic_thread_id)
                 {
                     if (move(direction, &position, state, next_state))
                     {
-                        puts("before:");
-                        print_state(state);
-                        puts("after:");
-                        print_state(next_state);
-
                         if (!is_past_state(next_state))
                         {
                             score = calculate_score(next_state, end_state);
@@ -480,9 +476,6 @@ static void * process_jobs(void * generic_thread_id)
                             else
                             {
                                 queue_index = atomic_increment(jobs) % thread_count;
-
-                                printf("adding job to queue %u: 0x%x (%u)\n", queue_index,
-                                    next_move_node, thread_id);
 
                                 pthread_mutex_lock(&queue_mutexes[queue_index]);
                                 queue_insert(&queues[queue_index], score, next_move_node);
