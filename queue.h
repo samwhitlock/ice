@@ -22,7 +22,6 @@ struct queue
     int size;
     int capacity;
     struct queue_node * nodes;
-    omp_lock_t lock;
 };
 
 void queue_initialize(struct queue * queue);

@@ -3,8 +3,8 @@
 CFLAGS = -g -O2 -march=core2 -Wall
 CC = gcc
 
-EXTRA_CFLAGS = -fopenmp -std=c99 -I.
-EXTRA_LDFLAGS = -fopenmp
+EXTRA_CFLAGS = -pthread -std=c99 -I.
+EXTRA_LDFLAGS = -pthread
 
 ifeq ($(DEBUG), 1)
 EXTRA_CFLAGS := $(EXTRA_CFLAGS) -DDEBUG
