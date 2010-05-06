@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <alloca.h>
+#include <signal.h>
+
+#define __USE_XOPEN2K
 #include <pthread.h>
 
 #ifdef __linux
@@ -390,6 +393,14 @@ void build_move_list(const struct move_tree * move_node)
     }
 }
 
+static void terminate_thread(int signal)
+{
+    if (signal == SIGTERM)
+    {
+        pthread_exit(NULL);
+    }
+}
+
 static void * process_jobs(void * generic_thread_id)
 {
     int thread_id = (int) generic_thread_id;
@@ -412,6 +423,8 @@ static void * process_jobs(void * generic_thread_id)
     unsigned int score;
 
     bool processed_all;
+
+    signal(SIGTERM, &terminate_thread);
 
     while (true)
     {
@@ -466,7 +479,7 @@ static void * process_jobs(void * generic_thread_id)
                                 {
                                     if (id == thread_id) continue;
 
-                                    pthread_cancel(threads[id]);
+                                    pthread_kill(threads[id], SIGTERM);
                                 }
 
                                 build_move_list(next_move_node);
