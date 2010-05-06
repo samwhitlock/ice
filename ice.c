@@ -590,7 +590,13 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     for (id = 0; id < thread_count; ++id)
     {
         pthread_join(threads[id], NULL);
+        pthread_cond_destroy(&queue_conditions[id]);
+        pthread_mutex_destroy(&queue_mutexes[id]);
+        queue_finalize(&queues[id]);
     }
+
+    pthread_rwlock_destroy(&move_tree_lock);
+    pthread_mutex_destroy(&terminate_lock);
 
     finalize_move_tree();
 
