@@ -390,6 +390,8 @@ static void * process_jobs(void * generic_thread_id)
     enum direction direction;
     unsigned int score;
 
+    bool processed_all;
+
     while (true)
     {
         atomic_increment(threads_waiting);
@@ -408,7 +410,8 @@ static void * process_jobs(void * generic_thread_id)
 
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
-            bitset = state[bitset_index];
+            bitset = state[bitset_index] & ~end_state[bitset_index];
+            processed_all = false;
 
             while (bitset)
             {
@@ -467,6 +470,12 @@ static void * process_jobs(void * generic_thread_id)
                 }
 
                 bitset &= ~(1 << bit_index);
+
+                if (!bitset && !processed_all)
+                {
+                    bitset = state[bitset_index] & end_state[bitset_index];
+                    processed_all = true;
+                }
             }
         }
     }
