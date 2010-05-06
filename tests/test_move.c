@@ -301,7 +301,7 @@ static bool test_invalid_block_east()
      */
 
     const uint32_t state[] = {
-        0x2a000800,
+        0x1a000800,
         0x00000800
     };
 
