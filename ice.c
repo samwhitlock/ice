@@ -143,7 +143,7 @@ bool move(enum direction direction, const struct position * position,
     bool first = true;
     if (direction == NORTH)
     {
-        for (int x = position->x, y = position->y; y >= 0; --y, first = false)
+        for (int x = position->x, y = position->y-1; y >= 0; --y, first = false)
         {
             if (get_bit(x, y, state) != 0)
             {
@@ -159,7 +159,7 @@ bool move(enum direction direction, const struct position * position,
         }
     } else if (direction == SOUTH)
     {
-        for (int x = position->x, y = position->y; y < state_height; ++y, first = false)//FIXME: generate num_rows somewhere
+        for (int x = position->x, y = position->y+1; y < state_height; ++y, first = false)//FIXME: generate num_rows somewhere
         {
             if (get_bit(x, y, state) != 0)
             {
@@ -175,7 +175,7 @@ bool move(enum direction direction, const struct position * position,
         }
     } else if (direction == EAST)
     {
-        for (int x = position->x-1, y = position->y; x >= 0; ++x, first = false)
+        for (int x = position->x+1, y = position->y; x < state_width; ++x, first = false)
         {
             if (get_bit(x, y, state) != 0)
             {
@@ -191,7 +191,7 @@ bool move(enum direction direction, const struct position * position,
         } 
     } else //if (direction == WEST)
     {
-        for (int x = position->x+1, y = position->y; x < state_width; --x, first = false)
+        for (int x = position->x-1, y = position->y; x >= 0; --x, first = false)
         {
             if (get_bit(x, y, state) != 0)
             {
