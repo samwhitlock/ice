@@ -31,18 +31,18 @@ void queue_initialize(struct queue * queue)
     omp_init_lock(&queue->lock);
 }
 
-uint32_t * queue_pop(struct queue * queue)
+struct move_tree * queue_pop(struct queue * queue)
 {
-    uint32_t * state;
+    struct move_tree * move_node;
 
     omp_set_lock(&queue->lock);
 
-    state = queue->nodes[0].state;
+    move_node = queue->nodes[0].move_node;
 
     if (--queue->size > 0)
     {
         unsigned int score = queue->nodes[queue->size].score;
-        uint32_t * state = queue->nodes[queue->size].state;
+        struct move_tree * move_node = queue->nodes[queue->size].move_node;
 
         int index;
         int min_child_index;
@@ -60,21 +60,21 @@ uint32_t * queue_pop(struct queue * queue)
             if (score > queue->nodes[min_child_index].score)
             {
                 queue->nodes[index].score = queue->nodes[min_child_index].score;
-                queue->nodes[index].state = queue->nodes[min_child_index].state;
+                queue->nodes[index].move_node = queue->nodes[min_child_index].move_node;
             }
             else break;
         }
 
         queue->nodes[index].score = score;
-        queue->nodes[index].state = state;
+        queue->nodes[index].move_node = move_node;
     }
 
     omp_unset_lock(&queue->lock);
 
-    return state;
+    return move_node;
 }
 
-void queue_insert(struct queue * queue, unsigned int score, uint32_t * state)
+void queue_insert(struct queue * queue, unsigned int score, struct move_tree * move_node)
 {
     int parent_index;
     int index = queue->size++;
@@ -94,11 +94,11 @@ void queue_insert(struct queue * queue, unsigned int score, uint32_t * state)
         index = parent_index, parent_index = parent(index))
     {
         queue->nodes[index].score = queue->nodes[parent_index].score;
-        queue->nodes[index].state = queue->nodes[parent_index].state;
+        queue->nodes[index].move_node = queue->nodes[parent_index].move_node;
     }
 
     queue->nodes[index].score = score;
-    queue->nodes[index].state = state;
+    queue->nodes[index].move_node = move_node;
 
     omp_unset_lock(&queue->lock);
 }
