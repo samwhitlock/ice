@@ -21,52 +21,33 @@ struct test_case
 struct test_case test_cases[] = {
     { "simple",     true },
     { "spiral_4",   true },
-    { "cs61c",      true }
+    { "61c",        true }
 };
 int test_cases_length = sizeof(test_cases) / sizeof(struct test_case);
 
-static bool validate_solution(struct position * configuration, struct position * end_configuration,
+static bool validate_solution(uint32_t * state, struct position * end_state,
     struct move * moves, int moves_length)
 {
     int move_index;
     int position_index;
-    struct position * position;
 
     for (move_index = 0; move_index < moves_length; ++move_index)
     {
-        for(position_index = 0; position_index < configuration_length; ++position_index)
-        {
-            position = &configuration[position_index];
-
-            if (position->x == moves[move_index].position.x
-                && position->y == moves[move_index].position.y)
-            {
-                if (move(configuration, moves[move_index].direction, position, position))
-                {
-                    break;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-        }
-
-        if (position_index == configuration_length)
+        if (!move(moves[move_index].direction, &moves[move_index].position, state, state))
         {
             return false;
         }
     }
 
-    return configurations_equal(configuration, end_configuration);
+    return states_equal(state, end_state);
 }
 
 int main(int argc, char * argv[])
 {
-    struct position * start_configuration;
-    struct position * end_configuration;
-    int end_configuration_length;
-    int start_configuration_length;
+    uint32_t * start_state;
+    uint32_t * end_state;
+    int start_width, start_height, start_ones, end_ones, end_width, end_height;
+
     int index;
 
     for (index = 0; index < test_cases_length; ++index)
@@ -79,23 +60,23 @@ int main(int argc, char * argv[])
 
         /* Read the PBMs */
         sprintf(pbm_path, "tests/pbm/%s_start.pbm", test_cases[index].pbm);
-        read_pbm(pbm_path, &start_configuration, &start_configuration_length);
+        read_pbm(pbm_path, &start_state, &start_width, &start_height, &start_ones);
         sprintf(pbm_path, "tests/pbm/%s_end.pbm", test_cases[index].pbm);
-        read_pbm(pbm_path, &end_configuration, &end_configuration_length);
+        read_pbm(pbm_path, &end_state, &end_width, &end_height, &end_ones);
 
-        if (start_configuration_length != end_configuration_length)
+        if (start_ones != end_ones || start_width != end_width || start_height != end_height)
         {
             process_result(!test_cases[index].expected_result, test_cases[index].pbm);
         }
         else
         {
-            configuration_length = start_configuration_length;
+            state_width = start_width;
+            state_height = start_height;
+            state_ones = start_ones;
 
-            initialize_past_configurations();
-
-            if (find_path(start_configuration, end_configuration, 0))
+            if (find_path(start_state, end_state))
             {
-                process_result(validate_solution(start_configuration, end_configuration, moves, moves_length) ==
+                process_result(validate_solution(start_state, end_state, moves, moves_length) ==
                     test_cases[index].expected_result, test_cases[index].pbm);
             }
             else
