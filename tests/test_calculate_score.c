@@ -79,9 +79,7 @@ int main(int argc, char * argv[])
 {
     state_height = 8;
     state_width = 8;
-    ints_per_row = 1;
-    ints_per_state = 8;
-    state_size = 64;
+    state_size = 2;
 
     RUN_TEST(test_same);
     RUN_TEST(test_different);

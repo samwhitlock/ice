@@ -154,7 +154,7 @@ bool test_simple()
 
 int main(int argc, char * argv[])
 {
-    ints_per_row = 1;
+    state_size = 1;
 
     RUN_TEST(test_61c);
     RUN_TEST(test_spiral_8);

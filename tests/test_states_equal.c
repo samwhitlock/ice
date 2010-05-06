@@ -28,7 +28,7 @@ static bool test_one_different()
 
 int main(int argc, char * argv[])
 {
-    state_size = 8;
+    state_size = 8;//FIXME: Is this still correct?
 
     RUN_TEST(test_equal);
     RUN_TEST(test_one_different);
