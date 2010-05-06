@@ -43,7 +43,6 @@ enum flip
 int state_height, state_width, state_ones;
 size_t state_size;
 
-int ints_per_row;
 int ints_per_state;
 
 struct move_tree * move_tree = NULL;
@@ -68,7 +67,7 @@ static void finalize_move_tree()
 
 static inline uint32_t total_bit_offset(int x, int y)
 {
-    return (uint32_t) x+(y*num_columns);//FIXME: generate num_columns
+    return (uint32_t) x+(y*state_height);//FIXME: generate num_columns
 }
 
 static inline uint32_t state_index(int x, int y)
@@ -97,7 +96,20 @@ static inline uint32_t mask(uint32_t offset, enum flip flp)
 static inline void set_bit(int x, int y, uint32_t * state, enum flip flp)
 {
     uint32_t index = state_index(x, y), offset = bit_offset(x, y);
-    *state[index] = flp == ON ? *state[index] | mask(offset, flp) : *state[index] & mask(offset, flp);
+    if (flp == ON)
+    {
+        state[index] = state[index] | mask(offset,flp);
+    } else
+    {
+        state[index] = state[index] & mask(offset,flp);
+    }
+}
+
+//Note: This assumes there is a bit at FROM and not one at TO. This is just an abstraction with no checks, which should be done elsewhere
+static inline void move_bit(uint32_t * state, int from_x, int from_y, int to_x, int to_y)
+{
+    set_bit(from_x, from_y, state, OFF);
+    set_bit(to_x, to_y, state, ON);
 }
 
 static inline uint32_t get_bit(int x, int y, const uint32_t * state)
@@ -121,14 +133,14 @@ bool move(enum direction direction, const struct position * position,
                 else
                 {
                     memcpy(next_state, state, state_size);
-                    set_bit(x, y+1, state);
+                    move_bit(next_state, position->x, position->y, x, y+1);
                     return true;
                 }
             }
         }
     } else if (direction == SOUTH)
     {
-        for (int x = position->x, y = position->y; y < num_rows; ++y, first = false)//FIXME: generate num_rows somewhere
+        for (int x = position->x, y = position->y; y < state_height; ++y, first = false)//FIXME: generate num_rows somewhere
         {
             if (get_bit(x, y, state) != 0)
             {
@@ -137,14 +149,14 @@ bool move(enum direction direction, const struct position * position,
                 else
                 {
                     memcpy(next_state, state, state_size);
-                    set_bit(x, y-1, state);
+                    move_bit(next_state, position->x, position->y, x, y-1);
                     return true;
                 }
             }
         }
     } else if (direction == EAST)
     {
-        for (int x = position->x-1, y = position->y, x_offset = total_bit_offset(x-1, y); x >= 0; ++x, first = false)
+        for (int x = position->x-1, y = position->y; x >= 0; ++x, first = false)
         {
             if (get_bit(x, y, state) != 0)
             {
@@ -153,14 +165,14 @@ bool move(enum direction direction, const struct position * position,
                 else
                 {
                     memcpy(next_state, state, state_size);
-                    set_bit(x-1, y, state);
+                    move_bit(next_state, position->x, position->y, x-1, y);
                     return true;
                 }
             }
         } 
     } else //if (direction == WEST)
     {
-        for (int x = position->x+1, y = position->y; x < num_columns; --x, first = false)
+        for (int x = position->x+1, y = position->y; x < state_width; --x, first = false)
         {
             if (get_bit(x, y, state) != 0)
             {
@@ -169,7 +181,7 @@ bool move(enum direction direction, const struct position * position,
                 else
                 {
                     memcpy(next_state, state, state_size);
-                    set_bit(x+1, y, state);
+                    move_bit(next_state, position->x, position->y, x+1, y);
                     return true;
                 }
             }
