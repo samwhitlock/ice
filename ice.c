@@ -11,9 +11,10 @@
 
 #define __USE_XOPEN2K
 #define __USE_POSIX199309
+#define __USE_POSIX199506
 
-#include <pthread.h>
 #include <signal.h>
+#include <pthread.h>
 
 #ifdef __linux
 #include <unistd.h>
@@ -352,8 +353,6 @@ static void * process_jobs(void * generic_thread_id)
     int bitset_index;
     char bit_index;
 
-    int bitset_type;
-
     struct position position;
     enum direction direction;
     unsigned int score;
@@ -387,7 +386,7 @@ static void * process_jobs(void * generic_thread_id)
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
-        printf("processing 0x%x\n", state);
+        printf("processing 0x%x\n", (unsigned int) state);
 
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {

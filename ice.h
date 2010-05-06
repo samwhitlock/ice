@@ -42,7 +42,7 @@ struct move
 struct move_tree
 {
     struct move move;
-    struct move_tree * parent;
+    const struct move_tree * parent;
     int depth;
     uint32_t state[];
 };

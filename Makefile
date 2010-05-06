@@ -3,7 +3,8 @@
 CFLAGS = -g -O2 -march=core2 -Wall
 CC = gcc
 
-EXTRA_CFLAGS = -pthread -std=c99 -I.
+EXTRA_CFLAGS = -pthread -std=c99 -I. -Wno-int-to-pointer-cast \
+	-Wno-pointer-to-int-cast
 EXTRA_LDFLAGS = -pthread
 
 ifeq ($(DEBUG), 1)
