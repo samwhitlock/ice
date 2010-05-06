@@ -300,6 +300,16 @@ void build_move_list(const struct move_tree * move_node)
     }
 }
 
+static inline int x_position(int bitset_index, int bit_index)
+{
+    return ((bitset_index * 32) % state_width) + bit_index;
+}
+
+static inline int y_position(int bitset_index, int bit_index)
+{
+    return ((bitset_index * 32) + bit_index) / 32;
+}
+
 static void * process_jobs(void * generic_thread_id)
 {
     int thread_id = (int) generic_thread_id;
@@ -346,8 +356,8 @@ static void * process_jobs(void * generic_thread_id)
             {
                 bit_index = first_one(bitset) - 1;
 
-                position.x = bitset_index % ints_per_row + bit_index;
-                position.y = bitset_index / ints_per_row;
+                position.x = x_position(bitset_index, bit_index);
+                position.y = y_position(bitset_index, bit_index);
 
                 for (direction = NORTH; direction <= WEST; ++direction)
                 {
