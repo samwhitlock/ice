@@ -49,14 +49,11 @@ enum flip
 };
 
 /* The number of positions that compose a state of the bits */
-int state_height, state_width, state_ones;
+int state_height, state_width, state_ones, ints_per_state;
 size_t state_size;
 
-int ints_per_state;
-
 struct move_tree * move_tree = NULL;
-int move_tree_length;
-int move_tree_capacity;
+int move_tree_length, move_tree_capacity;
 
 struct move * moves;
 int moves_length;
@@ -241,7 +238,7 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
 
     int index;
 
-    for (index = 0; index < ints_per_state; ++index)
+    for (index = 0; index < state_size; ++index)
     {
         score += set_ones(first_state[index] ^ second_state[index]);
     }
@@ -312,7 +309,7 @@ static void * process_jobs(void * generic_thread_id)
     uint32_t * state;
     struct move_tree * move_node;
     struct move_tree * next_move_node;
-    uint32_t next_state[ints_per_state];
+    uint32_t next_state[state_size];
 
     uint32_t bitset;
     int bitset_index;
@@ -341,7 +338,7 @@ static void * process_jobs(void * generic_thread_id)
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
         // FIXME: ints_per row is no longer used
-        for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
+        for (bitset_index = 0; bitset_index < state_size; ++bitset_index)
         {
             bitset = state[bitset_index];
 

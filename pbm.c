@@ -8,13 +8,21 @@
 
 #include "pbm.h"
 
+static inline uint32_t mask(int x, int y, int width)
+{
+    return 1 << (x+(y*width))%32;
+}
+
+static inline int offset(int x, int y, int width)
+{
+    return ((y*width)+x)/32;
+}
+
 void read_pbm(const char const * filename, uint32_t ** state, int * width, int * height, int * ones)
 {
     FILE * file;
-    int x, y;
+    int x, y, w, h;
 
-    int ints_per_row;
-    int ints_per_state;
 
     file = fopen(filename, "r");
     if(ones != NULL)
@@ -22,9 +30,12 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
 
     fscanf(file, "P1 %d %d\n", width, height);
 
-    ints_per_row = (*width) / 32 + (*width) % 32 == 0 ? 0 : 1;
-    ints_per_state = ints_per_row * (*height);
-
+    w = *width;
+    h = *height;
+    
+    int ints_per_state = ((*width * *height) / 32) + ((*width * *height)%32) > 0 ? 1 : 0;
+    
+    
     *state = calloc(ints_per_state, 4);
 
     for (y = 0; y < *height; ++y)
@@ -33,7 +44,7 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
         {
             if (getc(file) == '1')
             {
-                (*state)[y * ints_per_row + x / 32] |= 1 << (x % 32);
+                 (*state)[offset(x,y,w)] |= mask(x,y,w);
                 if(ones != NULL)
                     ++(*ones);
             }
