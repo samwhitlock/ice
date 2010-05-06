@@ -22,14 +22,8 @@ bool test_same()
      */
 
     const uint32_t state[] = {
-        0xaa,
-        0x55,
-        0xaa,
-        0x55,
-        0xaa,
-        0x55,
-        0xaa,
-        0x55
+        0xaa55aa55,
+        0xaa55aa55
     };
 
     return calculate_score(state, state) == 0;
@@ -51,25 +45,13 @@ bool test_different()
      */
 
     const uint32_t state[] = {
-        0xaa,
-        0x55,
-        0xaa,
-        0x55,
-        0xaa,
-        0x55,
-        0xaa,
-        0x55
+        0xaa55aa55,
+        0xaa55aa55
     };
 
     const uint32_t end_state[] = {
-        0x55,
-        0xaa,
-        0x55,
-        0xaa,
-        0x55,
-        0xaa,
-        0x55,
-        0xaa
+        0x55aa55aa,
+        0x55aa55aa
     };
 
     return calculate_score(state, end_state) == 64;

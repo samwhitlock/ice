@@ -36,14 +36,8 @@ static bool test_invalid_edge_north()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x00,
-        0x00,
-        0x2a,
-        0x00,
-        0x08,
-        0x00,
-        0x00
+        0x2a000000,
+        0x00008000
     };
 
     uint32_t next_state[ints_per_state];
@@ -73,14 +67,8 @@ static bool test_invalid_block_north()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x00,
-        0x08,
-        0x2a,
-        0x00,
-        0x08,
-        0x00,
-        0x00
+        0x2a080000,
+        0x00008000
     };
 
     uint32_t next_state[ints_per_state];
@@ -110,27 +98,15 @@ static bool test_move_north()
      */
 
     const uint32_t state[] = {
-        0x08,
-        0x22,
-        0x00,
-        0x2a,
-        0x00,
-        0x22,
-        0x00,
-        0x00
+        0x2a002208,
+        0x00002200
     };
 
     uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
-        0x08,
-        0x2a,
-        0x00,
-        0x22,
-        0x00,
-        0x22,
-        0x00,
-        0x00
+        0x22002a08,
+        0x00002200
     };
 
     struct position position = { 3, 3 };
@@ -177,14 +153,8 @@ static bool test_invalid_edge_south()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x08,
-        0x00,
-        0x2a,
-        0x00,
-        0x00,
-        0x00,
-        0x00
+        0x2a000800,
+        0x0
     };
 
     uint32_t next_state[ints_per_state];
@@ -214,14 +184,8 @@ static bool test_invalid_block_south()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x08,
-        0x00,
-        0x2a,
-        0x08,
-        0x00,
-        0x00,
-        0x00
+        0x2a000800,
+        0x00000008
     };
 
     uint32_t next_state[ints_per_state];
@@ -251,27 +215,15 @@ static bool test_move_south()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x22,
-        0x00,
-        0x2a,
-        0x00,
-        0x22,
-        0x08,
-        0x00
+        0x2a002200,
+        0x00082200
     };
 
     uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
-        0x00,
-        0x22,
-        0x00,
-        0x22,
-        0x00,
-        0x2a,
-        0x08,
-        0x00
+        0x22002200,
+        0x00082a00
     };
 
     struct position position = { 3, 3 };
@@ -318,14 +270,8 @@ static bool test_invalid_edge_east()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x08,
-        0x00,
-        0x0a,
-        0x00,
-        0x08,
-        0x00,
-        0x00
+        0x0a000800,
+        0x00000800
     };
 
     uint32_t next_state[ints_per_state];
@@ -355,14 +301,8 @@ static bool test_invalid_block_east()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x08,
-        0x00,
-        0x1a,
-        0x00,
-        0x08,
-        0x00,
-        0x00
+        0x2a000800,
+        0x00000800
     };
 
     uint32_t next_state[ints_per_state];
@@ -392,27 +332,15 @@ static bool test_move_east()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x2a,
-        0x00,
-        0x4a,
-        0x00,
-        0x2a,
-        0x00,
-        0x00
+        0x4a002a00,
+        0x00002a00
     };
 
     uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
-        0x00,
-        0x2a,
-        0x00,
-        0x62,
-        0x00,
-        0x2a,
-        0x00,
-        0x00
+        0x62002a00,
+        0x00002a00
     };
 
     struct position position = { 3, 3 };
@@ -578,14 +506,8 @@ static bool test_invalid_edge_west()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x08,
-        0x00,
-        0x28,
-        0x00,
-        0x08,
-        0x00,
-        0x00
+        0x28000800,
+        0x00000800
     };
 
     uint32_t next_state[ints_per_state];
@@ -615,14 +537,8 @@ static bool test_invalid_block_west()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x08,
-        0x00,
-        0x2c,
-        0x00,
-        0x08,
-        0x00,
-        0x00
+        0x2c000800,
+        0x00000800
     };
 
     struct position position = { 3, 3 };
@@ -652,27 +568,15 @@ static bool test_move_west()
      */
 
     const uint32_t state[] = {
-        0x00,
-        0x2a,
-        0x00,
-        0x29,
-        0x00,
-        0x2a,
-        0x00,
-        0x00
+        0x29002a00,
+        0x00002a00
     };
 
     uint32_t next_state[ints_per_state];
 
     const uint32_t expected_next_state[] = {
-        0x00,
-        0x2a,
-        0x00,
-        0x23,
-        0x00,
-        0x2a,
-        0x00,
-        0x00
+        0x23002a00,
+        0x00002a00
     };
 
     struct position position = { 3, 3 };
