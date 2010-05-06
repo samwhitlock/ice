@@ -3,8 +3,6 @@
  * Copyright (c) 2010 Michael Forney
  */
 
-#include <omp.h>
-
 #include "queue.h"
 
 static inline int left_child(size_t index)
@@ -27,15 +25,11 @@ void queue_initialize(struct queue * queue)
     queue->capacity = 1024 * 1024;
     queue->size = 0;
     queue->nodes = malloc(queue->capacity * sizeof(struct queue_node));
-
-    omp_init_lock(&queue->lock);
 }
 
 struct move_tree * queue_pop(struct queue * queue)
 {
     struct move_tree * move_node;
-
-    omp_set_lock(&queue->lock);
 
     move_node = queue->nodes[0].move_node;
 
@@ -69,8 +63,6 @@ struct move_tree * queue_pop(struct queue * queue)
         queue->nodes[index].move_node = move_node;
     }
 
-    omp_unset_lock(&queue->lock);
-
     return move_node;
 }
 
@@ -78,8 +70,6 @@ void queue_insert(struct queue * queue, unsigned int score, struct move_tree * m
 {
     int parent_index;
     int index = queue->size++;
-
-    omp_set_lock(&queue->lock);
 
     if (queue->size > queue->capacity)
     {
@@ -99,8 +89,6 @@ void queue_insert(struct queue * queue, unsigned int score, struct move_tree * m
 
     queue->nodes[index].score = score;
     queue->nodes[index].move_node = move_node;
-
-    omp_unset_lock(&queue->lock);
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax

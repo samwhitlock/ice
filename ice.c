@@ -8,7 +8,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <alloca.h>
-#include <omp.h>
+#include <pthread.h>
+
+#ifdef __linux
+#include <unistd.h>
+#else /* Assume Mac */
+#include <sys/sysctl.h>
+#endif
 
 #include "ice.h"
 #include "queue.h"
@@ -24,6 +30,9 @@
 #define first_one __builtin_ffs
 #define leading_zeros __builtin_clz
 #define trailing_zeros __builtin_ctz
+#define atomic_increment(variable) __sync_fetch_and_add(&variable, 1)
+#define atomic_decrement(variable) __sync_fetch_and_sub(&variable, 1)
+
 #define ONES_THRESHOLD -1//fool with this later
 
 char direction_char[] = {
@@ -51,6 +60,19 @@ int move_tree_capacity;
 
 struct move * moves;
 int moves_length;
+
+const uint32_t * end_state;
+
+/* Thread Variables */
+int thread_count;
+unsigned int jobs;
+bool found;
+unsigned int threads_waiting;
+
+pthread_t * threads;
+pthread_cond_t * queue_conditions;
+pthread_mutex_t * queue_mutexes;
+struct queue * queues;
 
 static void initialize_move_tree()
 {
@@ -281,147 +303,159 @@ void build_move_list(const struct move_tree * move_node)
     }
 }
 
-bool find_path(const uint32_t * start_state, const uint32_t * end_state)
+static void * process_jobs(void * generic_thread_id)
 {
-    struct queue * queues;
-    bool found = false;
-    bool done = false;
-    unsigned int jobs = 0;
-    unsigned int threads_waiting = 0;
+    int thread_id = (int) generic_thread_id;
+
     int queue_index;
+
+    uint32_t * state;
+    struct move_tree * move_node;
+    struct move_tree * next_move_node;
+    uint32_t next_state[ints_per_state];
+
+    uint32_t bitset;
+    int bitset_index;
+    char bit_index;
+
+    int bitset_type;
+
+    struct position position;
+    enum direction direction;
+    unsigned int score;
+
+    while (true)
+    {
+        atomic_increment(threads_waiting);
+
+        while (queues[thread_id].size == 0)
+        {
+            pthread_cond_wait(&queue_conditions[thread_id], &queue_mutexes[thread_id]);
+        }
+
+        atomic_decrement(threads_waiting);
+
+        move_node = queue_pop(&queues[thread_id]);
+        state = move_node->state;
+
+        pthread_mutex_unlock(&queue_mutexes[thread_id]);
+
+        for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
+        {
+            bitset = state[bitset_index];
+
+            while (bitset)
+            {
+                bit_index = first_one(bitset) - 1;
+
+                position.x = bitset_index % ints_per_row + bit_index;
+                position.y = bitset_index / ints_per_row;
+
+                for (direction = NORTH; direction <= WEST; ++direction)
+                {
+                    if (move(direction, &position, state, next_state))
+                    {
+                        puts("before:");
+                        print_state(state);
+                        puts("after:");
+                        print_state(next_state);
+
+                        if (!is_past_state(next_state))
+                        {
+                            score = calculate_score(next_state, end_state);
+                            next_move_node = add_move(next_state, move_node, &position, direction);
+
+                            if (score == 0)
+                            {
+                                int id;
+
+                                /* Huzzah! We found it! */
+                                puts("found solution");
+                                found = true;
+
+                                for (id = 0; id < thread_count; ++id)
+                                {
+                                    if (id == thread_id) continue;
+
+                                    pthread_cancel(threads[id]);
+                                }
+
+                                build_move_list(next_move_node);
+
+                                return NULL;
+                            }
+                            else
+                            {
+                                queue_index = atomic_increment(jobs) % thread_count;
+
+                                printf("adding job to queue %u: 0x%x (%u)\n", queue_index,
+                                    next_move_node, thread_id);
+
+                                pthread_mutex_lock(&queue_mutexes[queue_index]);
+                                queue_insert(&queues[queue_index], score, next_move_node);
+                                pthread_cond_signal(&queue_conditions[queue_index]);
+                                pthread_mutex_unlock(&queue_mutexes[queue_index]);
+                            }
+                        }
+                    }
+                }
+
+                bitset &= ~(1 << bit_index);
+            }
+        }
+    }
+
+    return NULL;
+}
+
+bool find_path(const uint32_t * start, const uint32_t * end)
+{
+    int id;
+
+    found = false;
+    jobs = 0;
+    threads_waiting = 0;
+
+    #ifdef __linux
+    thread_count = sysconf(_SC_NPROCESSORS_ONLN);
+    #else /* Assume Mac */
+    size_t length = sizeof(thread_count);
+    int mib[] = { CTL_HW, HW_AVAILCPU };
+    sysctl(mib, 2, &thread_count, &length, NULL, 0);
+    #endif
+
+    printf("starting %u threads\n", thread_count);
 
     ints_per_row = state_width / 32 + state_width % 32 == 0 ? 0 : 1;
     ints_per_state = state_height * ints_per_row;
     state_size = ints_per_state * 4;
 
+    threads = alloca(thread_count * sizeof(pthread_t));
+    queue_mutexes = alloca(thread_count * sizeof(pthread_mutex_t));
+    queue_conditions = alloca(thread_count * sizeof(pthread_cond_t));
+    queues = alloca(thread_count * sizeof(struct queue));
+
+    for (id = 0; id < thread_count; ++id)
+    {
+        pthread_mutex_init(&queue_mutexes[id], NULL);
+        pthread_cond_init(&queue_conditions[id], NULL);
+        queue_initialize(&queues[id]);
+    }
+
     initialize_move_tree();
 
-    add_move(start_state, NULL, NULL, 0);
+    end_state = end;
+    add_move(start, NULL, NULL, 0);
+    queue_insert(&queues[0], 0, past_move(0));
 
-    #pragma omp parallel if(state_ones>ONES_THRESHOLD) shared(found, done, threads_waiting, jobs, queues)
+    for (id = 0; id < thread_count; ++id)
     {
-        uint32_t * state;
-        struct move_tree * move_node;
-        struct move_tree * next_move_node;
-        uint32_t next_state[ints_per_state];
+        pthread_create(&threads[id], NULL, &process_jobs, (void *) id);
+    }
 
-        uint32_t bitset;
-        int bitset_index;
-        char bit_index;
-
-        struct position position;
-        enum direction direction;
-        unsigned int score;
-
-        #pragma omp single
-        {   
-            /* Initialize the queues */
-            queues = alloca(omp_get_num_threads() * sizeof(struct queue));
-
-            for (int queue_index = 0; queue_index < omp_get_num_threads(); ++queue_index)
-            {
-                queue_initialize(&queues[queue_index]);
-            }
-
-            queue_insert(&queues[0], 0, past_move(0));
-        }
-
-        while (!done)
-        {
-            #pragma omp critical
-            printf("starting (%u)\n", omp_get_thread_num());
-
-            #pragma omp atomic
-            ++threads_waiting;
-
-            /* Wait until we have something to do */
-            while (queues[omp_get_thread_num()].size == 0 && !done)
-            {
-                #pragma omp flush(queues, done, threads_waiting)
-
-                if (threads_waiting == omp_get_num_threads())
-                {
-                    #pragma omp single
-                    {
-                        for (queue_index = 0; queue_index < omp_get_num_threads(); ++queue_index)
-                        {
-                            if (queues[queue_index].size > 0) break;
-                        }
-
-                        if (queue_index == omp_get_num_threads())
-                        {
-                            done = true;
-                        }
-                    }
-                }
-            }
-
-            #pragma omp flush(done)
-            if (done) break;
-
-            #pragma omp atomic
-            --threads_waiting;
-
-            move_node = queue_pop(&queues[omp_get_thread_num()]);
-            state = move_node->state;
-
-            #pragma omp critical
-            {
-                printf("processing state: 0x%x (%u)\n", state, omp_get_thread_num());
-                print_state(state);
-            }
-
-            for (bitset_index = 0; bitset_index < ints_per_state && !done; ++bitset_index)
-            {
-                bitset = state[bitset_index];
-
-                while (bitset && !done)
-                {
-                    bit_index = first_one(bitset) - 1;
-
-                    position.x = bitset_index % ints_per_row + bit_index;
-                    position.y = bitset_index / ints_per_row;
-
-                    for (direction = NORTH; direction <= WEST && !done; ++direction)
-                    {
-                        if (move(direction, &position, state, next_state))
-                        {
-                            puts("before:");
-                            print_state(state);
-                            puts("after:");
-                            print_state(next_state);
-                            if (!is_past_state(next_state))
-                            {
-                                #pragma omp critical
-                                DEBUG_PRINT("%u %u %c - okay (%u)\n", position.x, position.y, direction_char[direction],
-                                    omp_get_thread_num());
-
-                                score = calculate_score(next_state, end_state);
-                                next_move_node = add_move(next_state, move_node, &position, direction);
-
-                                if (score == 0)
-                                {
-                                    /* Huzzah! We found it! */
-                                    puts("found solution");
-                                    done = true;
-                                    found = true;
-
-                                    build_move_list(next_move_node);
-                                }
-                                else
-                                {
-                                    printf("adding job to queue %u: 0x%x (%u)\n", jobs % omp_get_num_threads(),
-                                        next_move_node, omp_get_thread_num());
-                                    queue_insert(&queues[jobs++ % omp_get_num_threads()], score, next_move_node);
-                                }
-                            }
-                        }
-                    }
-
-                    bitset &= ~(1 << bit_index);
-                }
-            }
-        }
+    for (id = 0; id < thread_count; ++id)
+    {
+        pthread_join(threads[id], NULL);
     }
 
     finalize_move_tree();
