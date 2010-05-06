@@ -25,7 +25,7 @@ int main(int argc, char * argv[])
         printf(help_text, argv[0]);
         return 1;
     }
-    
+
     /* Read the PBMs */
     read_pbm(argv[1], &start_state, &start_width, &start_height, &start_ones);
     read_pbm(argv[2], &end_state, &end_width, &end_height, &end_ones);
@@ -35,7 +35,7 @@ int main(int argc, char * argv[])
         puts("IMPOSSIBLE");
         return 0;
     }
-    
+
     state_width = start_width;
     state_height = start_height;
     state_ones = start_ones;
@@ -57,7 +57,7 @@ int main(int argc, char * argv[])
 
     free(start_state);
     free(end_state);
-    
+
     return 0;
 }
 
