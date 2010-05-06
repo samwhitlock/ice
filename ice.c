@@ -340,6 +340,7 @@ static void * process_jobs(void * generic_thread_id)
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
+        // FIXME: ints_per row is no longer used
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
             bitset = state[bitset_index];
@@ -426,8 +427,7 @@ bool find_path(const uint32_t * start, const uint32_t * end)
 
     printf("starting %u threads\n", thread_count);
 
-    ints_per_row = state_width / 32 + state_width % 32 == 0 ? 0 : 1;
-    ints_per_state = state_height * ints_per_row;
+    ints_per_state = state_height * state_width / 32;
     state_size = ints_per_state * 4;
 
     threads = alloca(thread_count * sizeof(pthread_t));
