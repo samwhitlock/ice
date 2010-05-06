@@ -8,7 +8,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <alloca.h>
+
+#define __USE_XOPEN2K
+#define __USE_POSIX199309
+
 #include <pthread.h>
+#include <signal.h>
 
 #ifdef __linux
 #include <unistd.h>
@@ -70,6 +75,9 @@ pthread_t * threads;
 pthread_cond_t * queue_conditions;
 pthread_mutex_t * queue_mutexes;
 struct queue * queues;
+
+pthread_mutex_t terminate_lock;
+pthread_rwlock_t move_tree_lock;
 
 static void initialize_move_tree()
 {
@@ -185,6 +193,7 @@ bool move(enum direction direction, const struct position * position,
                 {
                     memcpy(next_state, state, state_size);
                     move_bit(next_state, position->x, position->y, x-1, y);
+                    pthread_rwlock_unlock(&move_tree_lock);
                     return true;
                 }
             }
@@ -206,7 +215,8 @@ bool move(enum direction direction, const struct position * position,
             }
         }
     }
-       
+
+    pthread_rwlock_unlock(&move_tree_lock);
     return false;
 }
 
@@ -271,13 +281,18 @@ static struct move_tree * add_move(const uint32_t * state, const struct move_tre
 {
     struct move_tree * move_node;
 
-    move_node = past_move(move_tree_length++);
+    int move_index = atomic_increment(move_tree_length);
 
     if (move_tree_length > move_tree_capacity)
     {
+        pthread_rwlock_wrlock(&move_tree_lock);
         move_tree_capacity *= 2;
         move_tree = realloc(move_tree, move_tree_capacity * state_size);
+        pthread_rwlock_unlock(&move_tree_lock);
     }
+
+    pthread_rwlock_rdlock(&move_tree_lock);
+    move_node = past_move(move_index);
 
     if (position) move_node->move.position = *position;
     move_node->move.direction = direction;
@@ -285,6 +300,7 @@ static struct move_tree * add_move(const uint32_t * state, const struct move_tre
     move_node->depth = parent ? parent->depth + 1 : 0;
 
     memcpy(move_node->state, state, state_size);
+    pthread_rwlock_unlock(&move_tree_lock);
 
     return move_node;
 }
@@ -310,14 +326,34 @@ static inline int y_position(int bitset_index, int bit_index)
     return ((bitset_index * 32) + bit_index) / 32;
 }
 
+static void terminate_thread(int signal)
+{
+    if (signal == SIGTERM)
+    {
+        pthread_exit(NULL);
+    }
+}
+
+static void terminate_all_threads(int thread_id)
+{
+    int id;
+
+    for (id = 0; id < thread_count; ++id)
+    {
+        if (thread_id == id) continue;
+
+        pthread_kill(threads[id], SIGTERM);
+    }
+}
+
 static void * process_jobs(void * generic_thread_id)
 {
     int thread_id = (int) generic_thread_id;
 
     int queue_index;
 
-    uint32_t * state;
-    struct move_tree * move_node;
+    const uint32_t * state;
+    const struct move_tree * move_node;
     struct move_tree * next_move_node;
     uint32_t next_state[ints_per_state];
 
@@ -331,12 +367,25 @@ static void * process_jobs(void * generic_thread_id)
     enum direction direction;
     unsigned int score;
 
+    bool processed_all;
+
+    signal(SIGTERM, &terminate_thread);
+
     while (true)
     {
         atomic_increment(threads_waiting);
 
         while (queues[thread_id].size == 0)
         {
+            if (threads_waiting == thread_count)
+            {
+                printf("impossible\n");
+                pthread_mutex_lock(&terminate_lock);
+
+                terminate_all_threads(thread_id);
+                return NULL;
+            }
+
             pthread_cond_wait(&queue_conditions[thread_id], &queue_mutexes[thread_id]);
         }
 
@@ -347,12 +396,16 @@ static void * process_jobs(void * generic_thread_id)
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
-        // FIXME: ints_per row is no longer used
+        printf("processing 0x%x\n", state);
+
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
-            bitset = state[bitset_index];
+            pthread_rwlock_rdlock(&move_tree_lock);
+            bitset = state[bitset_index] & ~end_state[bitset_index];
+            pthread_rwlock_unlock(&move_tree_lock);
+            processed_all = false;
 
-            while (bitset)
+            while (bitset || !processed_all)
             {
                 bit_index = first_one(bitset) - 1;
 
@@ -363,11 +416,6 @@ static void * process_jobs(void * generic_thread_id)
                 {
                     if (move(direction, &position, state, next_state))
                     {
-                        puts("before:");
-                        print_state(state);
-                        puts("after:");
-                        print_state(next_state);
-
                         if (!is_past_state(next_state))
                         {
                             score = calculate_score(next_state, end_state);
@@ -375,18 +423,13 @@ static void * process_jobs(void * generic_thread_id)
 
                             if (score == 0)
                             {
-                                int id;
-
                                 /* Huzzah! We found it! */
+                                pthread_mutex_lock(&terminate_lock);
+
                                 puts("found solution");
                                 found = true;
 
-                                for (id = 0; id < thread_count; ++id)
-                                {
-                                    if (id == thread_id) continue;
-
-                                    pthread_cancel(threads[id]);
-                                }
+                                terminate_all_threads(thread_id);
 
                                 build_move_list(next_move_node);
 
@@ -395,9 +438,6 @@ static void * process_jobs(void * generic_thread_id)
                             else
                             {
                                 queue_index = atomic_increment(jobs) % thread_count;
-
-                                printf("adding job to queue %u: 0x%x (%u)\n", queue_index,
-                                    next_move_node, thread_id);
 
                                 pthread_mutex_lock(&queue_mutexes[queue_index]);
                                 queue_insert(&queues[queue_index], score, next_move_node);
@@ -409,6 +449,14 @@ static void * process_jobs(void * generic_thread_id)
                 }
 
                 bitset &= ~(1 << bit_index);
+
+                if (!bitset && !processed_all)
+                {
+                    pthread_rwlock_rdlock(&move_tree_lock);
+                    bitset = state[bitset_index] & end_state[bitset_index];
+                    pthread_rwlock_unlock(&move_tree_lock);
+                    processed_all = true;
+                }
             }
         }
     }
@@ -437,10 +485,19 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     ints_per_state = state_height * state_width / 32;
     state_size = ints_per_state * 4;
 
+    if (states_equal(start, end))
+    {
+        moves_length = 0;
+        return true;
+    }
+
     threads = alloca(thread_count * sizeof(pthread_t));
     queue_mutexes = alloca(thread_count * sizeof(pthread_mutex_t));
     queue_conditions = alloca(thread_count * sizeof(pthread_cond_t));
     queues = alloca(thread_count * sizeof(struct queue));
+
+    pthread_rwlock_init(&move_tree_lock, NULL);
+    pthread_mutex_init(&terminate_lock, NULL);
 
     for (id = 0; id < thread_count; ++id)
     {
@@ -463,7 +520,13 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     for (id = 0; id < thread_count; ++id)
     {
         pthread_join(threads[id], NULL);
+        pthread_cond_destroy(&queue_conditions[id]);
+        pthread_mutex_destroy(&queue_mutexes[id]);
+        queue_finalize(&queues[id]);
     }
+
+    pthread_rwlock_destroy(&move_tree_lock);
+    pthread_mutex_destroy(&terminate_lock);
 
     finalize_move_tree();
 
