@@ -47,12 +47,6 @@ char direction_char[] = {
     [WEST] = 'W'
 };
 
-enum flip
-{
-    OFF = 0,
-    ON
-};
-
 /* The number of positions that compose a state of the bits */
 int state_height, state_width, state_ones, ints_per_state;
 size_t state_size;
@@ -92,132 +86,129 @@ static void finalize_move_tree()
     free(move_tree);
 }
 
-static inline uint32_t total_bit_offset(int x, int y)
+/**
+ * Returns the index of the bitset that contains the specified x and y
+ * coordinates.
+ */
+static inline int bitset_index(int x, int y)
 {
-    return (uint32_t) x+(y*state_height);//FIXME: generate num_columns
+    return (y * state_height + x) / 32;
 }
 
-static inline uint32_t state_index(int x, int y)
+/**
+ * Returns the index of the bit within the bitset that contains the specified x
+ * and y coordinates.
+ */
+static inline int bit_index(int x, int y)
 {
-    return total_bit_offset(x, y) / 32;    
+    return (y * state_height + x) % 32;
 }
 
-static inline uint32_t bit_offset(int x, int y)
+/**
+ * Sets the bit located at the given x and y coordinates of the given state.
+ */
+static inline void state_set_bit(uint32_t * state, int x, int y)
 {
-    return total_bit_offset(x, y) % 32;
+    state[bitset_index(x, y)] |= 1 << bit_index(x, y);
 }
 
-//Note: assumes offset < 32
-static inline uint32_t mask(uint32_t offset, enum flip flp)
+/**
+ * Clears the bit located at the given x and y coordinates of the given state.
+ */
+static inline void state_clear_bit(uint32_t * state, int x, int y)
 {
-    uint32_t num = 1 << offset;
-    if (flp == ON)
-    {
-        return num;
-    } else
-    {
-        return ~num;
-    }
+    state[bitset_index(x, y)] &= ~(1 << bit_index(x, y));
 }
 
-static inline void set_bit(int x, int y, uint32_t * state, enum flip flp)
+/**
+ * Moves the bit from one position to another in a given state.
+ */
+static inline void state_move_bit(uint32_t * state, int from_x, int from_y, int to_x, int to_y)
 {
-    uint32_t index = state_index(x, y), offset = bit_offset(x, y);
-    if (flp == ON)
-    {
-        state[index] = state[index] | mask(offset,flp);
-    } else
-    {
-        state[index] = state[index] & mask(offset,flp);
-    }
+    state_clear_bit(state, from_x, from_y);
+    state_set_bit(state, to_x, to_y);
 }
 
-//Note: This assumes there is a bit at FROM and not one at TO. This is just an abstraction with no checks, which should be done elsewhere
-static inline void move_bit(uint32_t * state, int from_x, int from_y, int to_x, int to_y)
+/**
+ * Gets the bit at the specified position in a given state.
+ */
+static inline bool state_bit(const uint32_t * state, int x, int y)
 {
-    set_bit(from_x, from_y, state, OFF);
-    set_bit(to_x, to_y, state, ON);
-}
-
-static inline uint32_t get_bit(int x, int y, const uint32_t * state)
-{
-    return (1 & (state[state_index(x,y)] >> bit_offset(x,y)));
+    return state[bitset_index(x, y)] & (1 << bit_index(x, y));
 }
 
 bool move(enum direction direction, const struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
-    //TODO: add prefetch optimizations for loops to prepare to get_bit and set_bit
-    bool first = true;
+    int x = position->x;
+    int y = position->y;
+
+    pthread_rwlock_rdlock(&move_tree_lock);
+
+    // TODO: Add prefetch optimizations for loops to prepare to get_bit and set_bit.
+
     if (direction == NORTH)
     {
-        for (int x = position->x, y = position->y-1; y >= 0; --y, first = false)
+        if (y == 0 || state_bit(state, x, y - 1)) goto invalid;
+
+        for (y = position->y - 2; y >= 0; --y)
         {
-            if (get_bit(x, y, state) != 0)
+            if (state_bit(state, x, y))
             {
-                if (first)
-                    return false;
-                else
-                {
-                    memcpy(next_state, state, state_size);
-                    move_bit(next_state, position->x, position->y, x, y+1);
-                    return true;
-                }
+                ++y;
+                goto valid;
             }
         }
-    } else if (direction == SOUTH)
+    }
+    else if (direction == SOUTH)
     {
-        for (int x = position->x, y = position->y+1; y < state_height; ++y, first = false)//FIXME: generate num_rows somewhere
+        if (y == state_height - 1 || state_bit(state, x, y + 1)) goto invalid;
+
+        for (y = position->y + 2; y < state_height; ++y)
         {
-            if (get_bit(x, y, state) != 0)
+            if (state_bit(state, x, y))
             {
-                if (first)
-                    return false;
-                else
-                {
-                    memcpy(next_state, state, state_size);
-                    move_bit(next_state, position->x, position->y, x, y-1);
-                    return true;
-                }
+                --y;
+                goto valid;
             }
         }
-    } else if (direction == EAST)
+    }
+    else if (direction == EAST)
     {
-        for (int x = position->x+1, y = position->y; x < state_width; ++x, first = false)
+        if (x == state_width - 1 || state_bit(state, x + 1, y)) goto invalid;
+
+        for (x = position->x + 2; x < state_width; ++x)
         {
-            if (get_bit(x, y, state) != 0)
+            if (state_bit(state, x, y))
             {
-                if (first)
-                    return false;
-                else
-                {
-                    memcpy(next_state, state, state_size);
-                    move_bit(next_state, position->x, position->y, x-1, y);
-                    pthread_rwlock_unlock(&move_tree_lock);
-                    return true;
-                }
+                --x;
+                goto valid;
             }
-        } 
-    } else //if (direction == WEST)
+        }
+    }
+    else /* direction == WEST */
     {
-        for (int x = position->x-1, y = position->y; x >= 0; --x, first = false)
+        if (x == 0 || state_bit(state, x - 1, y)) goto invalid;
+
+        for (x = position->x - 2; x >= 0; --x)
         {
-            if (get_bit(x, y, state) != 0)
+            if (state_bit(state, x, y))
             {
-                if (first)
-                    return false;
-                else
-                {
-                    memcpy(next_state, state, state_size);
-                    move_bit(next_state, position->x, position->y, x+1, y);
-                    return true;
-                }
+                ++x;
+                goto valid;
             }
         }
     }
 
+invalid:
     pthread_rwlock_unlock(&move_tree_lock);
     return false;
+
+valid:
+    memcpy(next_state, state, state_size);
+    pthread_rwlock_unlock(&move_tree_lock);
+    state_move_bit(next_state, position->x, position->y, x, y);
+    return true;
 }
 
 void print_state(const uint32_t * state)
@@ -228,7 +219,7 @@ void print_state(const uint32_t * state)
     {
         for (x = 0; x < state_width; ++x)
         {
-            putchar(get_bit(x, y, state) + '0');
+            putchar(state_bit(state, x, y) + '0');
         }
 
         putchar('\n');
