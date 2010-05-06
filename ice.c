@@ -392,8 +392,6 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
             queue_insert(&queues[0], 0, past_move(0));
         }
 
-        threads_waiting = omp_get_num_threads();
-
         while (!done)
         {
             #pragma omp critical
