@@ -822,9 +822,8 @@ int main(int argc, char * argv[])
     /********** 8x8 **********/
     state_height = 8;
     state_width = 8;
-    ints_per_row = 1;
-    ints_per_state = 8;
-    state_size = 32;
+    ints_per_state = 2;
+    state_size = 8;
 
     /* North */
     RUN_TEST(test_invalid_edge_north);
@@ -849,7 +848,6 @@ int main(int argc, char * argv[])
     /********** 36x1 **********/
     state_height = 1;
     state_width = 36;
-    ints_per_row = 2;
     ints_per_state = 2;
     state_size = 8;
 

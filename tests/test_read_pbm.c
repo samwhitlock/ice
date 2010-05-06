@@ -31,7 +31,8 @@ bool test_61c()
 
     read_pbm("tests/pbm/61c_end.pbm", &state, &state_width, &state_height, NULL);
 
-    state_size = state_height * 4;
+    ints_per_state = ((state_width * state_height) / 32) + ((state_width * state_height)%32) > 0 ? 1 : 0;
+    state_size = ints_per_state * 4;
 
     if (state_width != 17 && state_height != 5)
     {
@@ -86,7 +87,8 @@ bool test_spiral_8()
 
     read_pbm("tests/pbm/spiral_8_start.pbm", &state, &state_width, &state_height, NULL);
 
-    state_size = state_height * 4;
+    ints_per_state = ((state_width * state_height) / 32) + ((state_width * state_height)%32) > 0 ? 1 : 0;
+    state_size = ints_per_state * 4;
 
     if (state_width != 8 && state_height != 9)
     {
@@ -129,7 +131,8 @@ bool test_simple()
 
     read_pbm("tests/pbm/simple_start.pbm", &state, &state_width, &state_height, NULL);
 
-    state_size = state_height * 4;
+    ints_per_state = ((state_width * state_height) / 32) + ((state_width * state_height)%32) > 0 ? 1 : 0;
+    state_size = ints_per_state * 4;
 
     if (state_width != 5 && state_height != 3)
     {
@@ -154,8 +157,6 @@ bool test_simple()
 
 int main(int argc, char * argv[])
 {
-    ints_per_row = 1;
-
     RUN_TEST(test_61c);
     RUN_TEST(test_spiral_8);
     RUN_TEST(test_simple);

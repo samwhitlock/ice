@@ -238,7 +238,7 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
 
     int index;
 
-    for (index = 0; index < state_size; ++index)
+    for (index = 0; index < ints_per_state; ++index)
     {
         score += set_ones(first_state[index] ^ second_state[index]);
     }
@@ -248,7 +248,7 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
 
 static inline struct move_tree * past_move(int index)
 {
-    return ((void *) &move_tree[index]) + index * state_size;
+    return ((void *) &move_tree[index]) + index * ints_per_state;//FIXME: possible issue here
 }
 
 static bool is_past_state(const uint32_t * state)
@@ -319,7 +319,7 @@ static void * process_jobs(void * generic_thread_id)
     uint32_t * state;
     struct move_tree * move_node;
     struct move_tree * next_move_node;
-    uint32_t next_state[state_size];
+    uint32_t next_state[ints_per_state];
 
     uint32_t bitset;
     int bitset_index;
@@ -348,7 +348,7 @@ static void * process_jobs(void * generic_thread_id)
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
         // FIXME: ints_per row is no longer used
-        for (bitset_index = 0; bitset_index < state_size; ++bitset_index)
+        for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
             bitset = state[bitset_index];
 

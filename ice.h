@@ -49,7 +49,7 @@ struct move_tree
 
 /********** Variable Declarations **********/
 extern char direction_char[];
-extern int state_height, state_width, state_ones;
+extern int state_height, state_width, state_ones, ints_per_state;
 extern size_t state_size;
 extern struct move * moves;
 extern int moves_length;
