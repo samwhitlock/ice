@@ -8,10 +8,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <alloca.h>
-#include <signal.h>
 
 #define __USE_XOPEN2K
+#define __USE_POSIX199309
+
 #include <pthread.h>
+#include <signal.h>
 
 #ifdef __linux
 #include <unistd.h>
@@ -78,6 +80,7 @@ pthread_cond_t * queue_conditions;
 pthread_mutex_t * queue_mutexes;
 struct queue * queues;
 
+pthread_mutex_t * impossible_lock;
 pthread_rwlock_t * move_tree_lock;
 
 static void initialize_move_tree()
@@ -401,6 +404,18 @@ static void terminate_thread(int signal)
     }
 }
 
+static void terminate_all_threads()
+{
+    int id;
+
+    for (id = 0; id < thread_count; ++id)
+    {
+        if (pthread_equal(threads[id], pthread_self())) continue;
+
+        pthread_kill(threads[id], SIGTERM);
+    }
+}
+
 static void * process_jobs(void * generic_thread_id)
 {
     int thread_id = (int) generic_thread_id;
@@ -432,6 +447,15 @@ static void * process_jobs(void * generic_thread_id)
 
         while (queues[thread_id].size == 0)
         {
+            if (threads_waiting == thread_count)
+            {
+                printf("impossible\n");
+                pthread_mutex_lock(impossible_lock);
+
+                terminate_all_threads();
+                return NULL;
+            }
+
             pthread_cond_wait(&queue_conditions[thread_id], &queue_mutexes[thread_id]);
         }
 
@@ -475,12 +499,7 @@ static void * process_jobs(void * generic_thread_id)
                                 puts("found solution");
                                 found = true;
 
-                                for (id = 0; id < thread_count; ++id)
-                                {
-                                    if (id == thread_id) continue;
-
-                                    pthread_kill(threads[id], SIGTERM);
-                                }
+                                terminate_all_threads();
 
                                 build_move_list(next_move_node);
 
@@ -542,8 +561,10 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     queue_conditions = alloca(thread_count * sizeof(pthread_cond_t));
     queues = alloca(thread_count * sizeof(struct queue));
     move_tree_lock = alloca(sizeof(pthread_rwlock_t));
+    impossible_lock = alloca(sizeof(pthread_mutex_t));
 
     pthread_rwlock_init(move_tree_lock, NULL);
+    pthread_mutex_init(impossible_lock, NULL);
 
     for (id = 0; id < thread_count; ++id)
     {
