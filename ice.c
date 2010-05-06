@@ -404,13 +404,13 @@ static void terminate_thread(int signal)
     }
 }
 
-static void terminate_all_threads()
+static void terminate_all_threads(int thread_id)
 {
     int id;
 
     for (id = 0; id < thread_count; ++id)
     {
-        if (pthread_equal(threads[id], pthread_self())) continue;
+        if (thread_id == id) continue;
 
         pthread_kill(threads[id], SIGTERM);
     }
@@ -452,7 +452,7 @@ static void * process_jobs(void * generic_thread_id)
                 printf("impossible\n");
                 pthread_mutex_lock(terminate_lock);
 
-                terminate_all_threads();
+                terminate_all_threads(thread_id);
                 return NULL;
             }
 
@@ -501,7 +501,7 @@ static void * process_jobs(void * generic_thread_id)
                                 puts("found solution");
                                 found = true;
 
-                                terminate_all_threads();
+                                terminate_all_threads(thread_id);
 
                                 build_move_list(next_move_node);
 
