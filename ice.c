@@ -63,185 +63,112 @@ static void finalize_move_tree()
     free(move_tree);
 }
 
-static inline uint32_t * state_bitset(const uint32_t * state, int x, int y)
+static inline uint32_t total_bit_offset(int x, int y)
 {
-    return &state[y * ints_per_row + x / 32];
+    //finish this later
 }
 
-static inline bool state_bit(const uint32_t * state, int x, int y)
+static inline uint32_t state_index(int x, int y)
 {
-    return *state_bitset(state, x, y) & (1 << (x % 32));
+    return total_bit_offset(x, y) / 32;    
 }
 
-static inline void state_set_bit(const uint32_t * state, int x, int y)
+static inline uint32_t bit_offset(int x, int y)
 {
-    *state_bitset(state, x, y) |= 1 << (x % 32);
+    return total_bit_offset(x, y) % 32;
 }
 
-static inline void state_clear_bit(const uint32_t * state, int x, int y)
+//Note: assumes offset < 32
+static inline uint32_t mask(uint32_t offset, enum flip flp)
 {
-    *state_bitset(state, x, y) &= ~(1 << (x % 32));
+    uint32_t num = 1 << offset;
+    if (flp == ON)
+    {
+        return num;
+    } else
+    {
+        return ~num;
+    }
 }
 
-static inline void state_move_bit(const uint32_t * state, int from_x, int from_y, int to_x, int to_y)
+static inline void set_bit(int x, int y, uint32_t * state, enum flip flp)
 {
-    printf("moving (%u, %u) to (%u, %u)\n", from_x, from_y, to_x, to_y);
-    state_clear_bit(state, from_x, from_y);
-    state_set_bit(state, to_x, to_y);
+    uint32_t index = state_index(x, y), offset = bit_offset(x, y);
+    *state[index] = flp == ON ? *state[index] | mask(offset, flp) : *state[index] & mask(offset, flp);
 }
 
-static inline int offset(const struct position * position)
+static inline uint32_t get_bit(int x, int y, const uint32_t * state)
 {
-    return (ints_per_row * position->y) + ((position->x) / 32);
-}
-
-static inline int block_index_offset(const struct position * position)
-{
-    return (position->x) % 32;
+    return (1 & (state[state_index(x,y)] >> bit_offset(x,y)));
 }
 
 bool move(enum direction direction, const struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
+    //TODO: add prefetch optimizations for loops to prepare to get_bit and set_bit
+    bool first = true;
     if (direction == NORTH)
     {
-        int y;
-
-        if (position->y == 0 || state_bit(state, position->x, position->y - 1))
+        for (int x = position->x, y = position->y; y >= 0; --y, first = false)//FIXME: generate num_columns somewhere
         {
-            return false;
-        }
-
-        for (y = position->y - 2; y >= 0; --y)
-        {
-            if (state_bit(state, position->x, y))
+            if (get_bit(x, y, state) != 0)
             {
-                memcpy(next_state, state, state_size);
-                state_set_bit(next_state, position->x, y + 1);
-                state_clear_bit(next_state, position->x, position->y);
-
-                return true;
-            }
-        }
-    }
-    else if (direction == SOUTH)
-    {
-        int y;
-
-        if (position->y == state_height - 1 || state_bit(state, position->x, position->y + 1))
-        {
-            return false;
-        }
-
-        for (y = position->y + 2; y < state_height; ++y)
-        {
-            if (state_bit(state, position->x, y))
-            {
-                memcpy(next_state, state, state_size);
-                state_set_bit(next_state, position->x, y - 1);
-                state_clear_bit(next_state, position->x, position->y);
-
-                return true;
-            }
-        }
-    }
-    else
-    {
-        int state_offset = offset(position), bit_offset = position->x, init_index = block_index_offset(position);
-        uint32_t bitSet;
-        
-        if (direction == EAST)
-        {
-            //first stuff
-            bitSet =  init_index == 31 ? 0 : state[state_offset] >> (init_index + 1);
-            if (bitSet != 0)//their are blocking bits to the EAST
-            {
-                //found!
-                if( trailing_zeros(bitSet) == 0 )
-                {
+                if (first)
                     return false;
-                } else
+                else
                 {
-                    bit_offset += trailing_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                    set_bit(x, y+1, state);
                     return true;
                 }
-            } else {
-                //add the number of zeros to the EAST to the offset
-                bit_offset += 32 - (init_index+1);
             }
-            
-            for (++state_offset; state_offset % ints_per_row > 0; ++state_offset)
+        }
+    } else if (direction == SOUTH)
+    {
+        for (int x = position->x, y = position->y; y < num_rows; ++y, first = false)//FIXME: generate num_columns somewhere
+        {
+            if (get_bit(x, y, state) != 0)
             {
-                bitSet = state[state_offset];
-                
-                if(bitSet != 0)
+                if (first)
+                    return false;
+                else
                 {
-                    if( trailing_zeros(bitSet) == 0 && bit_offset == position->x )
-                    {
-                        //this is where the error is happening
-                        return false;
-                    } else {
-                        //found!
-                        bit_offset += trailing_zeros(bitSet);
-                        memcpy(next_state, state, state_size);
-                        state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                        return true;
-                    }
-                } else {
-                    bit_offset += 32;                    
+                    set_bit(x, y-1, state);
+                    return true;
                 }
             }
         }
-        else//direction == WEST
+    } else if (direction == EAST)
+    {
+        for (int x = position->x-1, y = position->y, x_offset = total_bit_offset(x-1, y); x >= 0; ++x, first = false)
         {
-            //first stuff
-            bitSet = init_index == 0 ? 0 : state[state_offset] << (32 - init_index);
-            
-            if (bitSet != 0)//their are blocking bits to the WEST
+            if (get_bit(x, y, state) != 0)
             {
-                //found!
-                if( leading_zeros(bitSet) == 0 )
-                {
+                if (first)
                     return false;
-                } else 
+                else
                 {
-
-                    bit_offset -= leading_zeros(bitSet);
-                    memcpy(next_state, state, state_size);
-                    state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                    set_bit(x-1, y, state);
                     return true;
                 }
-            } else {
-                //add the number of zeros to the WEST to the offset
-                bit_offset -= init_index;
             }
-            
-            for (--state_offset; state_offset % ints_per_row < ints_per_row - 1; --state_offset)
+        }
+    } else //if (direction == WEST)
+    {
+        for (int x = position->x+1, y = position->y; x < num_columns; --x, first = false)
+        {
+            if (get_bit(x, y, state) != 0)
             {
-                bitSet = state[state_offset];
-                
-                if(bitSet != 0)
+                if (first)
+                    return false;
+                else
                 {
-                    //found!
-                    if (leading_zeros(bitSet)==0 && bit_offset == position->x)
-                    {
-                        //problem is here
-                        return false;
-                    } else {
-                        bit_offset -= leading_zeros(bitSet);
-                        memcpy(next_state, state, state_size);
-                        state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
-                        return true;
-                    }
-                } else {
-                    bit_offset -= 32;
+                    set_bit(x+1, y, state);
+                    return true;
                 }
             }
         }
     }
-
+       
     return false;
 }
 
@@ -355,7 +282,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
         unsigned int score;
 
         #pragma omp single
-        {
+        {   
             /* Initialize the queues */
             queues = alloca(omp_get_num_threads() * sizeof(struct queue));
 
