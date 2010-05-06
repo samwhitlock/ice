@@ -24,7 +24,7 @@
 #define first_one __builtin_ffs
 #define leading_zeros __builtin_clz
 #define trailing_zeros __builtin_ctz
-#define ONES_THRESHOLD 6//fool with this later
+#define ONES_THRESHOLD -1//fool with this later
 
 char direction_char[] = {
     [NORTH] = 'N',
@@ -340,7 +340,7 @@ bool find_path(const uint32_t * start_state, const uint32_t * end_state)
 
     add_move(start_state, NULL, NULL, 0);
 
-    #pragma omp parallel shared(found, done, threads_waiting, jobs)
+    #pragma omp parallel if(state_ones>ONES_THRESHOLD) shared(found, done, threads_waiting, jobs, queues)
     {
         uint32_t * state;
         uint32_t * past_state;
