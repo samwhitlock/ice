@@ -340,7 +340,9 @@ static struct move_tree * add_move(const uint32_t * state, const struct move_tre
 {
     struct move_tree * move_node;
 
-    move_node = past_move(move_tree_length++);
+    int move_index = atomic_increment(move_tree_length);
+
+    move_node = past_move(move_index);
 
     if (move_tree_length > move_tree_capacity)
     {
