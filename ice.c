@@ -75,6 +75,8 @@ pthread_cond_t * queue_conditions;
 pthread_mutex_t * queue_mutexes;
 struct queue * queues;
 
+pthread_rwlock_t * move_tree_lock;
+
 static void initialize_move_tree()
 {
     /* Initialize past states array */
@@ -128,12 +130,14 @@ static inline int block_index_offset(const struct position * position)
 bool move(enum direction direction, const struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
+    pthread_rwlock_rdlock(move_tree_lock);
     if (direction == NORTH)
     {
         int y;
 
         if (position->y == 0 || state_bit(state, position->x, position->y - 1))
         {
+            pthread_rwlock_unlock(move_tree_lock);
             return false;
         }
 
@@ -145,6 +149,7 @@ bool move(enum direction direction, const struct position * position,
                 state_set_bit(next_state, position->x, y + 1);
                 state_clear_bit(next_state, position->x, position->y);
 
+                pthread_rwlock_unlock(move_tree_lock);
                 return true;
             }
         }
@@ -155,6 +160,7 @@ bool move(enum direction direction, const struct position * position,
 
         if (position->y == state_height - 1 || state_bit(state, position->x, position->y + 1))
         {
+            pthread_rwlock_unlock(move_tree_lock);
             return false;
         }
 
@@ -166,6 +172,7 @@ bool move(enum direction direction, const struct position * position,
                 state_set_bit(next_state, position->x, y - 1);
                 state_clear_bit(next_state, position->x, position->y);
 
+                pthread_rwlock_unlock(move_tree_lock);
                 return true;
             }
         }
@@ -184,6 +191,7 @@ bool move(enum direction direction, const struct position * position,
                 //found!
                 if (trailing_zeros(bitSet) == 0)
                 {
+                    pthread_rwlock_unlock(move_tree_lock);
                     return false;
                 }
                 else
@@ -191,6 +199,7 @@ bool move(enum direction direction, const struct position * position,
                     bit_offset += trailing_zeros(bitSet);
                     memcpy(next_state, state, state_size);
                     state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                    pthread_rwlock_unlock(move_tree_lock);
                     return true;
                 }
             } else {
@@ -207,6 +216,7 @@ bool move(enum direction direction, const struct position * position,
                     if (trailing_zeros(bitSet) == 0 && bit_offset == position->x)
                     {
                         //this is where the error is happening
+                        pthread_rwlock_unlock(move_tree_lock);
                         return false;
                     }
                     else
@@ -215,6 +225,7 @@ bool move(enum direction direction, const struct position * position,
                         bit_offset += trailing_zeros(bitSet);
                         memcpy(next_state, state, state_size);
                         state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                        pthread_rwlock_unlock(move_tree_lock);
                         return true;
                     }
                 }
@@ -234,6 +245,7 @@ bool move(enum direction direction, const struct position * position,
                 //found!
                 if (leading_zeros(bitSet) == 0)
                 {
+                    pthread_rwlock_unlock(move_tree_lock);
                     return false;
                 }
                 else
@@ -241,6 +253,7 @@ bool move(enum direction direction, const struct position * position,
                     bit_offset -= leading_zeros(bitSet);
                     memcpy(next_state, state, state_size);
                     state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                    pthread_rwlock_unlock(move_tree_lock);
                     return true;
                 }
             } else {
@@ -258,6 +271,7 @@ bool move(enum direction direction, const struct position * position,
                     if (leading_zeros(bitSet)==0 && bit_offset == position->x)
                     {
                         //problem is here
+                        pthread_rwlock_unlock(move_tree_lock);
                         return false;
                     }
                     else
@@ -265,6 +279,7 @@ bool move(enum direction direction, const struct position * position,
                         bit_offset -= leading_zeros(bitSet);
                         memcpy(next_state, state, state_size);
                         state_move_bit(next_state, position->x, position->y, bit_offset, position->y);
+                        pthread_rwlock_unlock(move_tree_lock);
                         return true;
                     }
                 }
@@ -276,6 +291,7 @@ bool move(enum direction direction, const struct position * position,
         }
     }
 
+    pthread_rwlock_unlock(move_tree_lock);
     return false;
 }
 
@@ -342,13 +358,16 @@ static struct move_tree * add_move(const uint32_t * state, const struct move_tre
 
     int move_index = atomic_increment(move_tree_length);
 
-    move_node = past_move(move_index);
-
     if (move_tree_length > move_tree_capacity)
     {
+        pthread_rwlock_wrlock(move_tree_lock);
         move_tree_capacity *= 2;
         move_tree = realloc(move_tree, move_tree_capacity * state_size);
+        pthread_rwlock_unlock(move_tree_lock);
     }
+
+    pthread_rwlock_rdlock(move_tree_lock);
+    move_node = past_move(move_index);
 
     if (position) move_node->move.position = *position;
     move_node->move.direction = direction;
@@ -356,6 +375,7 @@ static struct move_tree * add_move(const uint32_t * state, const struct move_tre
     move_node->depth = parent ? parent->depth + 1 : 0;
 
     memcpy(move_node->state, state, state_size);
+    pthread_rwlock_unlock(move_tree_lock);
 
     return move_node;
 }
@@ -412,7 +432,9 @@ static void * process_jobs(void * generic_thread_id)
 
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
+            pthread_rwlock_rdlock(move_tree_lock);
             bitset = state[bitset_index] & ~end_state[bitset_index];
+            pthread_rwlock_unlock(move_tree_lock);
             processed_all = false;
 
             while (bitset)
@@ -475,7 +497,9 @@ static void * process_jobs(void * generic_thread_id)
 
                 if (!bitset && !processed_all)
                 {
+                    pthread_rwlock_rdlock(move_tree_lock);
                     bitset = state[bitset_index] & end_state[bitset_index];
+                    pthread_rwlock_unlock(move_tree_lock);
                     processed_all = true;
                 }
             }
@@ -511,6 +535,9 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     queue_mutexes = alloca(thread_count * sizeof(pthread_mutex_t));
     queue_conditions = alloca(thread_count * sizeof(pthread_cond_t));
     queues = alloca(thread_count * sizeof(struct queue));
+    move_tree_lock = alloca(sizeof(pthread_rwlock_t));
+
+    pthread_rwlock_init(move_tree_lock, NULL);
 
     for (id = 0; id < thread_count; ++id)
     {
