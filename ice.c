@@ -438,7 +438,7 @@ static void * process_jobs(void * generic_thread_id)
             pthread_rwlock_unlock(move_tree_lock);
             processed_all = false;
 
-            while (bitset)
+            while (bitset || !processed_all)
             {
                 bit_index = first_one(bitset) - 1;
 
