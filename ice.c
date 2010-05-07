@@ -284,7 +284,7 @@ static bool is_past_state(unsigned short hash, const uint32_t * state)
 
     for (index = 0; index < move_tree_hash_length[hash]; ++index)
     {
-        if (states_equal(past_move(hash, index)->state, state))
+        if (states_equal(past_move(hash, index)->state, state))//No prefetch because access is in memcmp
         {
             pthread_rwlock_unlock(&move_tree_lock);
             return true;
@@ -356,8 +356,9 @@ static void terminate_all_threads(int thread_id)
 
     for (id = 0; id < thread_count; ++id)
     {
+        //TODO: Prefetch here for threads+id?
         if (thread_id == id) continue;
-
+        
         pthread_cancel(threads[id]);
     }
 }
@@ -410,6 +411,8 @@ static void * process_jobs(void * generic_thread_id)
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
+        __builtin_prefetch(state, 0, 1);//TODO: Determine best prefetch locality (the second number 0-3)
+        
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
             pthread_rwlock_rdlock(&move_tree_lock);
@@ -427,12 +430,16 @@ static void * process_jobs(void * generic_thread_id)
                 {
                     if (move(direction, &position, state, next_state))
                     {
+                        __builtin_prefetch(next_state, 0, calculate_hash_prefetch_locality);//prefetch for the hash function
                         hash = calculate_hash(next_state);
 
                         pthread_testcancel();
 
                         if (!is_past_state(hash, next_state))
                         {
+                            
+                            __builtin_prefetch(next_state, 0, calculate_score_prefetch_locality);//prefetches for score calculations
+                            __builtin_prefetch(end_state, 0, calculate_score_prefetch_locality);
                             score = calculate_score(next_state, end_state);
                             next_move_node = add_move(next_state, hash, move_node, &position, direction);
 
@@ -466,6 +473,7 @@ static void * process_jobs(void * generic_thread_id)
 
                 bitset &= ~(1 << bit_index);
             }
+            __builtin_prefetch(state+(bitset_index+1), 0, 1);//TODO: Determine best prefetch locality (the second number 0-3)
         }
     }
 
