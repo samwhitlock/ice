@@ -39,10 +39,16 @@ struct move
     enum direction direction;
 };
 
+struct move_index
+{
+    unsigned short hash;
+    int index;
+};
+
 struct move_tree
 {
     struct move move;
-    const struct move_tree * parent;
+    struct move_index parent;
     int depth;
     uint32_t state[];
 };
@@ -82,7 +88,7 @@ bool states_equal(const uint32_t * first, const uint32_t * second);
 unsigned int calculate_score(const uint32_t * first_state, const uint32_t * second_state);
 
 bool move(enum direction direction, const struct position * position,
-    const uint32_t * current_state, uint32_t * next_state);
+    const struct move_index move_index, uint32_t * next_state);
 
 void print_state(const uint32_t * state);
 

@@ -134,6 +134,12 @@ static inline bool state_bit(const uint32_t * state, int x, int y)
     return state[bitset_index(x, y)] & (1 << bit_index(x, y));
 }
 
+static inline struct move_tree * past_move(const struct move_index move_index)
+{
+    return ((void *) &move_tree[move_index.index * HASH_MAX + move_index.hash]) +
+        (move_index.index * HASH_MAX + move_index.hash) * state_size;
+}
+
 /**
  * Move a bit in a desired position in the given direction. Updates
  * the next_state if move is valid.
@@ -141,12 +147,13 @@ static inline bool state_bit(const uint32_t * state, int x, int y)
  */
 #define move_read_locality 2//This specifies the levels of cache (i.e. level of locality). Valid 
 bool move(enum direction direction, const struct position * position,
-    const uint32_t * state, uint32_t * next_state)
+    const struct move_index move_index, uint32_t * next_state)
 {
     int x = position->x;
     int y = position->y;
 
     pthread_rwlock_rdlock(&move_tree_lock);
+    const uint32_t * state = past_move(move_index)->state;
 
     if (direction == NORTH)
     {
@@ -278,20 +285,17 @@ unsigned short calculate_hash(const uint32_t * state)
     return (unsigned short) hash % HASH_MAX;
 }
 
-static inline struct move_tree * past_move(unsigned short hash, int index)
-{
-    return ((void *) &move_tree[index * HASH_MAX + hash]) + (index * HASH_MAX + hash) * state_size;
-}
-
 static bool is_past_state(unsigned short hash, const uint32_t * state)
 {
-    int index;
+    struct move_index move_index;
+
+    move_index.hash = hash;
 
     pthread_rwlock_rdlock(&move_tree_lock);
 
-    for (index = 0; index < move_tree_hash_length[hash]; ++index)
+    for (move_index.index = 0; move_index.index < move_tree_hash_length[hash]; ++move_index.index)
     {
-        if (states_equal(past_move(hash, index)->state, state))
+        if (states_equal(past_move(move_index)->state, state))
         {
             pthread_rwlock_unlock(&move_tree_lock);
             return true;
@@ -302,14 +306,16 @@ static bool is_past_state(unsigned short hash, const uint32_t * state)
     return false;
 }
 
-static struct move_tree * add_move(const uint32_t * state, unsigned short hash,
-    const struct move_tree * parent, const struct position * position, enum direction direction)
-{//FIXME: This function has parallelism bugs. Run with spiral_16 to trigger often
+static struct move_index add_move(const uint32_t * state, unsigned short hash,
+    const struct move_index parent, const struct position * position, enum direction direction)
+{
+    struct move_index move_index;
     struct move_tree * move_node;
 
-    int move_index = atomic_increment(move_tree_hash_write_length[hash]);
+    move_index.index = atomic_increment(move_tree_hash_write_length[hash]);
+    move_index.hash = hash;
 
-    if (move_index > move_tree_capacity)
+    if (move_index.index > move_tree_capacity)
     {
         pthread_rwlock_wrlock(&move_tree_lock);
         move_tree_capacity *= 2;
@@ -319,19 +325,19 @@ static struct move_tree * add_move(const uint32_t * state, unsigned short hash,
     }
 
     pthread_rwlock_rdlock(&move_tree_lock);
-    move_node = past_move(hash, move_index);
+    move_node = past_move(move_index);
 
     if (position) move_node->move.position = *position;
     move_node->move.direction = direction;
     move_node->parent = parent;
-    move_node->depth = parent ? parent->depth + 1 : 0;
+    move_node->depth = (parent.index >= 0) ? past_move(parent)->depth + 1 : 0;
 
     memcpy(move_node->state, state, state_size);
     pthread_rwlock_unlock(&move_tree_lock);
 
     atomic_increment(move_tree_hash_length[hash]);
 
-    return move_node;
+    return move_index;
 }
 
 #define build_move_list_prefetch_locality 0
@@ -340,9 +346,9 @@ void build_move_list(const struct move_tree * move_node)
     moves_length = move_node->depth;
     moves = malloc(moves_length * sizeof(struct move));
 
-    for (; move_node->depth > 0; move_node = move_node->parent)
+    for (; move_node->depth > 0; move_node = past_move(move_node->parent))
     {
-        __builtin_prefetch(&moves[move_node->parent->depth-1], 0, build_move_list_prefetch_locality);
+        __builtin_prefetch(&moves[past_move(move_node->parent)->depth - 1], 0, build_move_list_prefetch_locality);
         moves[move_node->depth - 1] = move_node->move;
     }
 }
@@ -375,9 +381,8 @@ static void * process_jobs(void * generic_thread_id)
 
     int queue_index;
 
-    const uint32_t * state;
-    const struct move_tree * move_node;
-    struct move_tree * next_move_node;
+    struct move_index move_index;
+    struct move_index next_move_index;
     uint32_t next_state[ints_per_state];
 
     uint32_t bitset;
@@ -408,21 +413,19 @@ static void * process_jobs(void * generic_thread_id)
 
             pthread_testcancel();
             pthread_cond_wait(&queue_conditions[thread_id], &queue_mutexes[thread_id]);
+            pthread_testcancel();
         }
 
         atomic_decrement(threads_waiting);
 
-        move_node = queue_pop(&queues[thread_id]);
-        state = move_node->state;
+        move_index = queue_pop(&queues[thread_id]);
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
 
-        __builtin_prefetch(state, 0, 1);//TODO: Determine best prefetch locality (the second number 0-3)
-        
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
             pthread_rwlock_rdlock(&move_tree_lock);
-            bitset = state[bitset_index];
+            bitset = past_move(move_index)->state[bitset_index];
             pthread_rwlock_unlock(&move_tree_lock);
 
             while (bitset)
@@ -434,7 +437,7 @@ static void * process_jobs(void * generic_thread_id)
 
                 for (direction = NORTH; direction <= WEST; ++direction)
                 {
-                    if (move(direction, &position, state, next_state))
+                    if (move(direction, &position, move_index, next_state))
                     {
                         __builtin_prefetch(next_state, 0, calculate_hash_prefetch_locality);//prefetch for the hash function
                         hash = calculate_hash(next_state);
@@ -443,11 +446,10 @@ static void * process_jobs(void * generic_thread_id)
 
                         if (!is_past_state(hash, next_state))
                         {
-                            
                             __builtin_prefetch(next_state, 0, calculate_score_prefetch_locality);//prefetches for score calculations
                             __builtin_prefetch(end_state, 0, calculate_score_prefetch_locality);
                             score = calculate_score(next_state, end_state);
-                            next_move_node = add_move(next_state, hash, move_node, &position, direction);
+                            next_move_index = add_move(next_state, hash, move_index, &position, direction);
 
                             if (score == 0)
                             {
@@ -458,7 +460,7 @@ static void * process_jobs(void * generic_thread_id)
 
                                 terminate_all_threads(thread_id);
 
-                                build_move_list(next_move_node);
+                                build_move_list(past_move(next_move_index));
 
                                 return NULL;
                             }
@@ -469,7 +471,7 @@ static void * process_jobs(void * generic_thread_id)
                                 pthread_testcancel();
 
                                 pthread_mutex_lock(&queue_mutexes[queue_index]);
-                                queue_insert(&queues[queue_index], score, next_move_node);
+                                queue_insert(&queues[queue_index], score, next_move_index);
                                 pthread_cond_signal(&queue_conditions[queue_index]);
                                 pthread_mutex_unlock(&queue_mutexes[queue_index]);
                             }
@@ -479,7 +481,6 @@ static void * process_jobs(void * generic_thread_id)
 
                 bitset &= ~(1 << bit_index);
             }
-            __builtin_prefetch(state+(bitset_index+1), 0, 1);//TODO: Determine best prefetch locality (the second number 0-3)
         }
     }
 
@@ -532,8 +533,8 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     initialize_move_tree();
 
     end_state = end;
-    add_move(start, 0, NULL, NULL, 0);
-    queue_insert(&queues[0], 0, past_move(0, 0));
+    add_move(start, 0, (struct move_index) { 0, -1 }, NULL, 0);
+    queue_insert(&queues[0], 0, (struct move_index) { 0, 0 });
 
     pthread_attr_init(&attributes);
 

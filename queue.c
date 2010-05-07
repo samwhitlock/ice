@@ -33,16 +33,16 @@ void queue_finalize(struct queue * queue)
     free(queue->nodes);
 }
 
-const struct move_tree * queue_pop(struct queue * queue)
+struct move_index queue_pop(struct queue * queue)
 {
-    const struct move_tree * move_node;
-    __builtin_prefetch(queue->nodes + queue->size, 0, 1);//TODO: optimize the locality (the second number)
-    move_node = queue->nodes[0].move_node;
+    struct move_index move_index;
+    __builtin_prefetch(&queue->nodes[queue->size], 0, 1);//TODO: optimize the locality (the second number)
+    move_index = queue->nodes[0].move_index;
 
     if (--queue->size > 0)
     {
         unsigned int score = queue->nodes[queue->size].score;
-        const struct move_tree * move_node = queue->nodes[queue->size].move_node;
+        const struct move_index move_index = queue->nodes[queue->size].move_index;
 
         int index;
         int min_child_index;
@@ -60,19 +60,19 @@ const struct move_tree * queue_pop(struct queue * queue)
             if (score > queue->nodes[min_child_index].score)
             {
                 queue->nodes[index].score = queue->nodes[min_child_index].score;
-                queue->nodes[index].move_node = queue->nodes[min_child_index].move_node;
+                queue->nodes[index].move_index = queue->nodes[min_child_index].move_index;
             }
             else break;
         }
 
         queue->nodes[index].score = score;
-        queue->nodes[index].move_node = move_node;
+        queue->nodes[index].move_index = move_index;
     }
 
-    return move_node;
+    return move_index;
 }
 
-void queue_insert(struct queue * queue, unsigned int score, const struct move_tree * move_node)
+void queue_insert(struct queue * queue, unsigned int score, const struct move_index move_index)
 {
     int parent_index;
     int index = queue->size++;
@@ -89,14 +89,13 @@ void queue_insert(struct queue * queue, unsigned int score, const struct move_tr
         (index != 0) && score < queue->nodes[parent_index].score;
         index = parent_index, parent_index = parent(index))
     {
-        __builtin_prefetch(queue->nodes + parent_index, 1, 1);//TODO: optimize these prefetches
-        __builtin_prefetch(queue->nodes + parent(index), 0, 0);
+        __builtin_prefetch(&queue->nodes[parent(index)], 0, 0);
         queue->nodes[index].score = queue->nodes[parent_index].score;
-        queue->nodes[index].move_node = queue->nodes[parent_index].move_node;
+        queue->nodes[index].move_index = queue->nodes[parent_index].move_index;
     }
 
     queue->nodes[index].score = score;
-    queue->nodes[index].move_node = move_node;
+    queue->nodes[index].move_index = move_index;
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax
