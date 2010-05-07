@@ -18,15 +18,17 @@ bool test_61c()
      * 1 0 0 0 0 0 1 0 1 0 1 0 1 0 1 0 0
      * 1 1 1 0 1 1 1 0 1 1 1 0 1 0 1 1 1
      */
-
+/* This is to make it easier to put into hex
+1110 1110 1000 1011 1100 0100 0100 0101
+0010 0011 1011 1010 1001 0000 0101 0101
+0100 1110 1110 1110 1011 1
+ */
     uint32_t * state;
 
     const uint32_t expected_state[] = {
-        0x1d177,
-        0x05111,
-        0x05771,
-        0x05541,
-        0x1d777
+        0xa223d177,
+        0xaa095dc4,
+        0x1d7772
     };
 
     read_pbm("tests/pbm/61c_end.pbm", &state, &state_width, &state_height, NULL);
@@ -70,18 +72,19 @@ bool test_spiral_8()
      * 1 0 0 0 0 0 0 1
      * 1 1 1 1 1 1 1 1
      */
+    
+    /* Easier to put into hex
+     *LSB                                       MSB
+     * 1111 1111 1000 0001 1111 1101 1000 0101
+     * 1011 0101 1010 0101 1011 1101 1000 0001
+     * 1111 1111
+     */
 
     uint32_t * state;
 
     const uint32_t expected_state[] = {
-        0xff,
-        0x81,
-        0xbf,
-        0xa1,
-        0xad,
-        0xa5,
-        0xbd,
-        0x81,
+        0xa1bf81ff,
+        0x81bda5ad,
         0xff
     };
 
@@ -121,12 +124,16 @@ bool test_simple()
      * 0 1 0 0 0
      */
 
+    /* State:
+     * Easier to put into hex
+     * |LSB            MSB|
+     *  1001 0000 0101 000
+     */
+    
     uint32_t * state;
 
     const uint32_t expected_state[] = {
-        0x09,
-        0x10,
-        0x02
+        0xa09
     };
 
     read_pbm("tests/pbm/simple_start.pbm", &state, &state_width, &state_height, NULL);
@@ -138,7 +145,7 @@ bool test_simple()
     {
         printf("width: %u, expected_width: %u\n", state_width, 8);
         printf("height: %u, expected_height: %u\n", state_height, 9);
-
+        
         return false;
     }
     if (!states_equal(state, expected_state))
