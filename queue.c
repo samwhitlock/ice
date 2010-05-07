@@ -1,6 +1,7 @@
 /* queue.c
  *
  * Copyright (c) 2010 Michael Forney
+ * Copyright (c) 2010 Sam Whitlock
  */
 
 #include "queue.h"
@@ -35,7 +36,7 @@ void queue_finalize(struct queue * queue)
 const struct move_tree * queue_pop(struct queue * queue)
 {
     const struct move_tree * move_node;
-
+    __builtin_prefetch(queue->nodes + queue->size, 0, 1);//TODO: optimize the locality (the second number)
     move_node = queue->nodes[0].move_node;
 
     if (--queue->size > 0)
@@ -88,6 +89,8 @@ void queue_insert(struct queue * queue, unsigned int score, const struct move_tr
         (index != 0) && score < queue->nodes[parent_index].score;
         index = parent_index, parent_index = parent(index))
     {
+        __builtin_prefetch(queue->nodes + parent_index, 1, 1);//TODO: optimize these prefetches
+        __builtin_prefetch(queue->nodes + parent(index), 0, 0);
         queue->nodes[index].score = queue->nodes[parent_index].score;
         queue->nodes[index].move_node = queue->nodes[parent_index].move_node;
     }

@@ -1,6 +1,7 @@
 /* queue.h
  *
  * Copyright (c) 2010 Michael Forney
+ * Copyright (c) 2010 Sam Whitlock
  */
 
 #ifndef MOVE_NODE_QUEUE

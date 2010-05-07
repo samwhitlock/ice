@@ -1,6 +1,7 @@
 /* tests/test_calculate_score.c
  *
  * Copyright (c) 2010 Michael Forney
+ * Copyright (c) 2010 Sam Whitlock
  */
 
 #include "ice.h"

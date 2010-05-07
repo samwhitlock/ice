@@ -1,6 +1,7 @@
 /* main.c
  *
  * Copyright (c) 2010 Michael Forney
+ * Copyright (c) 2010 Sam Whitlock
  */
 
 #include <stdio.h>
@@ -13,7 +14,7 @@ const char help_text[] =
     "\tThis program will output a series of valid moves to get to the end\n"
     "\tconfiguration from the start configuration. If this is impossible, the\n"
     "\tprogram will simply output \"IMPOSSIBLE\".\n";
-
+#define print_state_prefetch_locality 3
 int main(int argc, char * argv[])
 {
     uint32_t * start_state;
@@ -44,8 +45,10 @@ int main(int argc, char * argv[])
     {
         int index;
 
+        __builtin_prefetch(moves, 0, print_state_prefetch_locality);
         for (index = 0; index < moves_length; ++index)
         {
+            __builtin_prefetch(moves+1, 0, print_state_prefetch_locality);
             printf("%u %u %c\n", moves[index].position.x, moves[index].position.y,
                 direction_char[moves[index].direction]);
         }

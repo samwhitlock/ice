@@ -1,6 +1,7 @@
 /* pbm.c
  *
  * Copyright (c) 2010 Michael Forney
+ * Copyright (c) 2010 Sam Whitlock
  */
 
 #include <stdio.h>
@@ -19,6 +20,7 @@ static inline int bitset_index(int x, int y, int width)
     return (y * width + x) / 32;
 }
 
+#define read_pbm_prefetch_locality 3
 void read_pbm(const char const * filename, uint32_t ** state, int * width, int * height, int * ones)
 {
     FILE * file;
@@ -44,8 +46,10 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
 
     for (y = 0; y < h; ++y)
     {
+        __builtin_prefetch(state+bitset_index(x,y,w), 1, read_pbm_prefetch_locality);
         for (x = 0; x < w; ++x)
         {
+            __builtin_prefetch(state+bitset_index(x+1,y,w), 1, read_pbm_prefetch_locality);
             if (getc(file) == '1')
             {
                 (*state)[bitset_index(x, y, w)] |= 1 << bit_index(x, y, w);

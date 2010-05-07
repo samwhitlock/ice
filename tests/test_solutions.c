@@ -29,7 +29,6 @@ static bool validate_solution(uint32_t * state, struct position * end_state,
     struct move * moves, int moves_length)
 {
     int move_index;
-    int position_index;
 
     for (move_index = 0; move_index < moves_length; ++move_index)
     {
