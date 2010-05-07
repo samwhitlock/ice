@@ -277,14 +277,18 @@ static bool is_past_state(unsigned short hash, const uint32_t * state)
 {
     int index;
 
+    pthread_rwlock_rdlock(&move_tree_lock);
+
     for (index = 0; index < move_tree_hash_length[hash]; ++index)
     {
         if (states_equal(past_move(hash, index)->state, state))
         {
+            pthread_rwlock_unlock(&move_tree_lock);
             return true;
         }
     }
 
+    pthread_rwlock_unlock(&move_tree_lock);
     return false;
 }
 
@@ -439,8 +443,6 @@ static void * process_jobs(void * generic_thread_id)
                     {
                         hash = calculate_hash(next_state);
 
-                        pthread_rwlock_rdlock(&move_tree_lock);
-
                         if (!is_past_state(hash, next_state))
                         {
                             pthread_rwlock_unlock(&move_tree_lock);
@@ -471,8 +473,6 @@ static void * process_jobs(void * generic_thread_id)
                                 pthread_mutex_unlock(&queue_mutexes[queue_index]);
                             }
                         }
-
-                        pthread_rwlock_unlock(&move_tree_lock);
                     }
                 }
 
