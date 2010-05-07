@@ -10,11 +10,7 @@
 #include <alloca.h>
 
 #define __USE_XOPEN2K
-#define __USE_POSIX199309
-#define __USE_POSIX199506
-#define __USE_POSIX
 
-#include <signal.h>
 #include <pthread.h>
 
 #ifdef __linux
@@ -345,15 +341,6 @@ static inline int y_position(int bitset_index, int bit_index)
     return (bitset_index * 32 + bit_index) / state_width;
 }
 
-static void terminate_thread(int signal)
-{
-    if (signal == SIGUSR1)
-    {
-        printf("terminating\n");
-        pthread_exit(NULL);
-    }
-}
-
 static void terminate_all_threads(int thread_id)
 {
     int id;
@@ -362,8 +349,7 @@ static void terminate_all_threads(int thread_id)
     {
         if (thread_id == id) continue;
 
-        printf("killing thread %u\n", id);
-        pthread_kill(threads[id], SIGUSR1);
+        pthread_cancel(threads[id]);
     }
 }
 
@@ -387,14 +373,6 @@ static void * process_jobs(void * generic_thread_id)
     unsigned int score;
     unsigned short hash;
 
-    struct sigaction action;
-
-    action.sa_handler = &terminate_thread;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-
-    sigaction(SIGUSR1, &action, NULL);
-
     while (true)
     {
         atomic_increment(threads_waiting);
@@ -412,6 +390,7 @@ static void * process_jobs(void * generic_thread_id)
                 return NULL;
             }
 
+            pthread_testcancel();
             pthread_cond_wait(&queue_conditions[thread_id], &queue_mutexes[thread_id]);
         }
 
@@ -443,6 +422,8 @@ static void * process_jobs(void * generic_thread_id)
                     {
                         hash = calculate_hash(next_state);
 
+                        pthread_testcancel();
+
                         if (!is_past_state(hash, next_state))
                         {
                             score = calculate_score(next_state, end_state);
@@ -465,6 +446,8 @@ static void * process_jobs(void * generic_thread_id)
                             else
                             {
                                 queue_index = atomic_increment(jobs) % thread_count;
+
+                                pthread_testcancel();
 
                                 pthread_mutex_lock(&queue_mutexes[queue_index]);
                                 queue_insert(&queues[queue_index], score, next_move_node);
