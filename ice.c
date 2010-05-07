@@ -255,20 +255,27 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
     return score;
 }
 
+/*
+ * Implementation of the One-at-a-Time hash.
+ */
 #define calculate_hash_prefetch_locality 0
-unsigned short calculate_hash(const uint32_t * state)//TODO: Optimize hash function?
+unsigned short calculate_hash(const uint32_t * state)
 {
-    int index;
+    uint32_t hash = 0;
 
-    uint32_t value = 0;
-
-    for (index = 0; index < ints_per_state; ++index)
+    for (int i = 0; i < ints_per_state; ++i)
     {
-        __builtin_prefetch(state+(index+1), 0, calculate_hash_prefetch_locality);
-        value ^= (index % 2 == 0) ? state[index] : ~state[index];
+        hash += state[i];
+        __builtin_prefetch(&state[i+1], 0, calculate_hash_prefetch_locality);
+        hash += ( hash << 10 );
+        hash ^= ( hash >> 6 );
     }
 
-    return (0xb7e4 ^ value ^ (value >> 8) ^ (value >> 16) ^ (value >> 24)) % HASH_MAX;
+    hash += ( hash << 3 );
+    hash ^= ( hash >> 11 );
+    hash += ( hash << 15 );
+ 
+    return (unsigned short) hash % HASH_MAX;
 }
 
 static inline struct move_tree * past_move(unsigned short hash, int index)
@@ -284,7 +291,7 @@ static bool is_past_state(unsigned short hash, const uint32_t * state)
 
     for (index = 0; index < move_tree_hash_length[hash]; ++index)
     {
-        if (states_equal(past_move(hash, index)->state, state))//No prefetch because access is in memcmp
+        if (states_equal(past_move(hash, index)->state, state))
         {
             pthread_rwlock_unlock(&move_tree_lock);
             return true;
