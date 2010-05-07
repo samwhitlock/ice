@@ -93,7 +93,7 @@ static void finalize_move_tree()
  */
 static inline int bitset_index(int x, int y)
 {
-    return (y * state_height + x) / 32;
+    return (y * state_width + x) / 32;
 }
 
 /**
@@ -102,7 +102,7 @@ static inline int bitset_index(int x, int y)
  */
 static inline int bit_index(int x, int y)
 {
-    return (y * state_height + x) % 32;
+    return (y * state_width + x) % 32;
 }
 
 /**
