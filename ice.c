@@ -136,6 +136,12 @@ static inline bool state_bit(const uint32_t * state, int x, int y)
     return state[bitset_index(x, y)] & (1 << bit_index(x, y));
 }
 
+/**
+ * Move a bit in a desired position in the given direction. Updates
+ * the next_state if move is valid.
+ * @return true if move is valid; false otherwise
+ */
+#define move_read_locality 2//This specifies the levels of cache (i.e. level of locality). Valid 
 bool move(enum direction direction, const struct position * position,
     const uint32_t * state, uint32_t * next_state)
 {
@@ -143,8 +149,6 @@ bool move(enum direction direction, const struct position * position,
     int y = position->y;
 
     pthread_rwlock_rdlock(&move_tree_lock);
-
-    // TODO: Add prefetch optimizations for loops to prepare to get_bit and set_bit.
 
     if (direction == NORTH)
     {
@@ -157,6 +161,7 @@ bool move(enum direction direction, const struct position * position,
                 ++y;
                 goto valid;
             }
+            __builtin_prefetch(state +(((y-1) * state_width + x) / 32), 0, move_read_locality);
         }
     }
     else if (direction == SOUTH)
@@ -170,6 +175,7 @@ bool move(enum direction direction, const struct position * position,
                 --y;
                 goto valid;
             }
+            __builtin_prefetch(state +(((y+1) * state_width + x) / 32), 0, move_read_locality);
         }
     }
     else if (direction == EAST)
@@ -183,6 +189,7 @@ bool move(enum direction direction, const struct position * position,
                 --x;
                 goto valid;
             }
+            __builtin_prefetch(state +((y * state_width + (x+1)) / 32), 0, move_read_locality);
         }
     }
     else /* direction == WEST */
@@ -196,6 +203,7 @@ bool move(enum direction direction, const struct position * position,
                 ++x;
                 goto valid;
             }
+            __builtin_prefetch(state +((y * state_width + (x-1)) / 32), 0, move_read_locality);
         }
     }
 
@@ -232,6 +240,7 @@ bool states_equal(const uint32_t * first, const uint32_t * second)
     return memcmp(first, second, state_size) == 0;
 }
 
+#define calculate_score_prefetch_locality 0
 unsigned int calculate_score(const uint32_t * first_state, const uint32_t * second_state)
 {
     unsigned int score = 0;
@@ -240,13 +249,16 @@ unsigned int calculate_score(const uint32_t * first_state, const uint32_t * seco
 
     for (index = 0; index < ints_per_state; ++index)
     {
+        __builtin_prefetch(first_state+(index+1), 0, calculate_score_prefetch_locality);
+        __builtin_prefetch(second_state+(index+1), 0, calculate_score_prefetch_locality);
         score += set_ones(first_state[index] ^ second_state[index]);
     }
 
     return score;
 }
 
-unsigned short calculate_hash(const uint32_t * state)
+#define calculate_hash_prefetch_locality 0
+unsigned short calculate_hash(const uint32_t * state)//TODO: Optimize hash function?
 {
     int index;
 
@@ -254,6 +266,7 @@ unsigned short calculate_hash(const uint32_t * state)
 
     for (index = 0; index < ints_per_state; ++index)
     {
+        __builtin_prefetch(state+(index+1), 0, calculate_hash_prefetch_locality);
         value ^= (index % 2 == 0) ? state[index] : ~state[index];
     }
 
@@ -316,6 +329,7 @@ static struct move_tree * add_move(const uint32_t * state, unsigned short hash,
     return move_node;
 }
 
+#define build_move_list_prefetch_locality 0
 void build_move_list(const struct move_tree * move_node)
 {
     moves_length = move_node->depth;
@@ -323,6 +337,7 @@ void build_move_list(const struct move_tree * move_node)
 
     for (; move_node->depth > 0; move_node = move_node->parent)
     {
+        __builtin_prefetch(moves+((move_node->parent->depth)-1), 0, build_move_list_prefetch_locality);
         moves[move_node->depth - 1] = move_node->move;
     }
 }
@@ -537,4 +552,3 @@ bool find_path(const uint32_t * start, const uint32_t * end)
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax
-
