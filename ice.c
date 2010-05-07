@@ -429,6 +429,8 @@ static void * process_jobs(void * generic_thread_id)
             {
                 bit_index = first_one(bitset) - 1;
 
+                if (bit_index < 0) break;
+
                 position.x = x_position(bitset_index, bit_index);
                 position.y = y_position(bitset_index, bit_index);
 
@@ -564,3 +566,4 @@ bool find_path(const uint32_t * start, const uint32_t * end)
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax
+
