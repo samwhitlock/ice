@@ -12,6 +12,7 @@
 #define __USE_XOPEN2K
 #define __USE_POSIX199309
 #define __USE_POSIX199506
+#define __USE_POSIX
 
 #include <signal.h>
 #include <pthread.h>
@@ -342,8 +343,9 @@ static inline int y_position(int bitset_index, int bit_index)
 
 static void terminate_thread(int signal)
 {
-    if (signal == SIGTERM)
+    if (signal == SIGUSR1)
     {
+        printf("terminating\n");
         pthread_exit(NULL);
     }
 }
@@ -356,7 +358,8 @@ static void terminate_all_threads(int thread_id)
     {
         if (thread_id == id) continue;
 
-        pthread_kill(threads[id], SIGTERM);
+        printf("killing thread %u\n", id);
+        pthread_kill(threads[id], SIGUSR1);
     }
 }
 
@@ -380,7 +383,13 @@ static void * process_jobs(void * generic_thread_id)
     unsigned int score;
     unsigned short hash;
 
-    signal(SIGTERM, &terminate_thread);
+    struct sigaction action;
+
+    action.sa_handler = &terminate_thread;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+
+    sigaction(SIGUSR1, &action, NULL);
 
     while (true)
     {
