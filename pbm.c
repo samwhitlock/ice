@@ -38,7 +38,7 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
     *width = w;
     *height = h;
 
-    int ints_per_state = (w * h / 32) + (w * h % 32) == 0 ? 0 : 1;
+    int ints_per_state = (w * h / 32) + ((w * h % 32) == 0 ? 0 : 1);
 
     *state = calloc(ints_per_state, 4);
 

@@ -473,7 +473,7 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     printf("starting %u threads\n", thread_count);
 
     ints_per_state = state_height * state_width / 32 +
-        (state_height * state_width % 32 == 0) ? 0 : 1;
+        ((state_height * state_width % 32 == 0) ? 0 : 1);
     state_size = ints_per_state * 4;
 
     if (states_equal(start, end))
