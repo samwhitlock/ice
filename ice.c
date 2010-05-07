@@ -310,12 +310,12 @@ void build_move_list(const struct move_tree * move_node)
 
 static inline int x_position(int bitset_index, int bit_index)
 {
-    return ((bitset_index * 32) % state_width) + bit_index;
+    return (bitset_index * 32 + bit_index) % state_width;
 }
 
 static inline int y_position(int bitset_index, int bit_index)
 {
-    return ((bitset_index * 32) + bit_index) / state_width;
+    return (bitset_index * 32 + bit_index) / state_width;
 }
 
 static void terminate_thread(int signal)
