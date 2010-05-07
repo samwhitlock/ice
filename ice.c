@@ -10,7 +10,9 @@
 #include <alloca.h>
 
 #define __USE_XOPEN2K
+#define __USE_GNU
 
+#include <xlocale.h>
 #include <pthread.h>
 
 #ifdef __linux
@@ -360,12 +362,17 @@ static inline int y_position(int bitset_index, int bit_index)
 static void terminate_all_threads(int thread_id)
 {
     int id;
+    struct timespec timeout = { .tv_nsec = 10000000 };
 
     for (id = 0; id < thread_count; ++id)
     {
         if (thread_id == id) continue;
         
         pthread_cancel(threads[id]);
+        while (!pthread_timedjoin_np(threads[id], NULL, &timeout))
+        {
+            pthread_cancel(threads[id]);
+        }
     }
 }
 
@@ -389,6 +396,8 @@ static void * process_jobs(void * generic_thread_id)
     unsigned int score;
     unsigned short hash;
 
+    struct timespec timeout = { .tv_nsec = 10000000 };
+
     while (true)
     {
         atomic_increment(threads_waiting);
@@ -407,7 +416,8 @@ static void * process_jobs(void * generic_thread_id)
             }
 
             pthread_testcancel();
-            pthread_cond_wait(&queue_conditions[thread_id], &queue_mutexes[thread_id]);
+            pthread_cond_timedwait(&queue_conditions[thread_id], &queue_mutexes[thread_id], &timeout);
+            pthread_testcancel();
         }
 
         atomic_decrement(threads_waiting);
