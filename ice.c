@@ -335,7 +335,7 @@ void build_move_list(const struct move_tree * move_node)
 
     for (; move_node->depth > 0; move_node = move_node->parent)
     {
-        __builtin_prefetch(moves+((move_node->parent->depth)-1), 0, build_move_list_prefetch_locality);
+        __builtin_prefetch(&moves[move_node->parent->depth-1], 0, build_move_list_prefetch_locality);
         moves[move_node->depth - 1] = move_node->move;
     }
 }
@@ -356,7 +356,6 @@ static void terminate_all_threads(int thread_id)
 
     for (id = 0; id < thread_count; ++id)
     {
-        //TODO: Prefetch here for threads+id?
         if (thread_id == id) continue;
         
         pthread_cancel(threads[id]);

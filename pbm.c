@@ -46,7 +46,6 @@ void read_pbm(const char const * filename, uint32_t ** state, int * width, int *
 
     for (y = 0; y < h; ++y)
     {
-        __builtin_prefetch(state+bitset_index(x,y,w), 1, read_pbm_prefetch_locality);
         for (x = 0; x < w; ++x)
         {
             __builtin_prefetch(state+bitset_index(x+1,y,w), 1, read_pbm_prefetch_locality);
