@@ -22,12 +22,6 @@
 #include "ice.h"
 #include "queue.h"
 
-#ifdef DEBUG
-#define DEBUG_PRINT(format, args...) printf(format, ## args)
-#else
-#define DEBUG_PRINT(format, args...)
-#endif
-
 /* Some helpful definitions */
 #define set_ones __builtin_popcount
 #define first_one __builtin_ffs
@@ -384,7 +378,6 @@ static void * process_jobs(void * generic_thread_id)
         {
             if (threads_waiting == thread_count)
             {
-                printf("impossible\n");
                 pthread_mutex_lock(&terminate_lock);
 
                 terminate_all_threads(thread_id);
@@ -401,8 +394,6 @@ static void * process_jobs(void * generic_thread_id)
         state = move_node->state;
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
-
-        printf("processing 0x%x from node: %x (%u)\n", (unsigned int) state, (unsigned int) move_node, thread_id);
 
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
@@ -435,7 +426,6 @@ static void * process_jobs(void * generic_thread_id)
                                 /* Huzzah! We found it! */
                                 pthread_mutex_lock(&terminate_lock);
 
-                                puts("found solution");
                                 found = true;
 
                                 terminate_all_threads(thread_id);
@@ -483,19 +473,12 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     sysctl(mib, 2, &thread_count, &length, NULL, 0);
     #endif
 
-    printf("starting %u threads\n", thread_count);
-
     ints_per_state = state_height * state_width / 32 +
         ((state_height * state_width % 32 == 0) ? 0 : 1);
     state_size = ints_per_state * 4;
 
-    printf("state_size: %u\n", (unsigned int) state_size);
-
     if (states_equal(start, end))
     {
-        print_state(start);
-        print_state(end);
-        puts("equal");
         moves_length = 0;
         return true;
     }
