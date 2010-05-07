@@ -377,6 +377,7 @@ static void * process_jobs(void * generic_thread_id)
     {
         atomic_increment(threads_waiting);
 
+        pthread_testcancel();
         pthread_mutex_lock(&queue_mutexes[thread_id]);
 
         while (queues[thread_id].size == 0)
