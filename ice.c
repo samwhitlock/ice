@@ -445,7 +445,6 @@ static void * process_jobs(void * generic_thread_id)
 
                         if (!is_past_state(hash, next_state))
                         {
-                            pthread_rwlock_unlock(&move_tree_lock);
                             score = calculate_score(next_state, end_state);
                             next_move_node = add_move(next_state, hash, move_node, &position, direction);
 
