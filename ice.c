@@ -29,6 +29,7 @@
 #define trailing_zeros __builtin_ctz
 #define atomic_increment(variable) __sync_fetch_and_add(&variable, 1)
 #define atomic_decrement(variable) __sync_fetch_and_sub(&variable, 1)
+#define prefetch __builtin_prefetch
 
 #define ONES_THRESHOLD -1//fool with this later
 #define HASH_MAX 1024
@@ -166,7 +167,7 @@ bool move(enum direction direction, const struct position * position,
                 ++y;
                 goto valid;
             }
-            __builtin_prefetch(state +(((y-1) * state_width + x) / 32), 0, move_read_locality);
+            prefetch(state +(((y-1) * state_width + x) / 32), 0, move_read_locality);
         }
     }
     else if (direction == SOUTH)
@@ -180,7 +181,7 @@ bool move(enum direction direction, const struct position * position,
                 --y;
                 goto valid;
             }
-            __builtin_prefetch(state +(((y+1) * state_width + x) / 32), 0, move_read_locality);
+            prefetch(state +(((y+1) * state_width + x) / 32), 0, move_read_locality);
         }
     }
     else if (direction == EAST)
@@ -194,7 +195,7 @@ bool move(enum direction direction, const struct position * position,
                 --x;
                 goto valid;
             }
-            __builtin_prefetch(state +((y * state_width + (x+1)) / 32), 0, move_read_locality);
+            prefetch(state +((y * state_width + (x+1)) / 32), 0, move_read_locality);
         }
     }
     else /* direction == WEST */
@@ -208,7 +209,7 @@ bool move(enum direction direction, const struct position * position,
                 ++x;
                 goto valid;
             }
-            __builtin_prefetch(state +((y * state_width + (x-1)) / 32), 0, move_read_locality);
+            prefetch(state +((y * state_width + (x-1)) / 32), 0, move_read_locality);
         }
     }
 
@@ -248,14 +249,15 @@ bool states_equal(const uint32_t * first, const uint32_t * second)
 #define calculate_score_prefetch_locality 0
 unsigned int calculate_score(const uint32_t * first_state, const uint32_t * second_state)
 {
-    unsigned int score = 0;
+    if(states_equal(first_state, second_state)) return 0;
 
+    unsigned int score = 0;
     int index;
 
     for (index = 0; index < ints_per_state; ++index)
     {
-        __builtin_prefetch(first_state+(index+1), 0, calculate_score_prefetch_locality);
-        __builtin_prefetch(second_state+(index+1), 0, calculate_score_prefetch_locality);
+        prefetch(first_state+(index+1), 0, calculate_score_prefetch_locality);
+        prefetch(second_state+(index+1), 0, calculate_score_prefetch_locality);
         score += set_ones(first_state[index] ^ second_state[index]);
     }
 
@@ -273,7 +275,7 @@ unsigned short calculate_hash(const uint32_t * state)
     for (int i = 0; i < ints_per_state; ++i)
     {
         hash += state[i];
-        __builtin_prefetch(&state[i+1], 0, calculate_hash_prefetch_locality);
+        prefetch(&state[i+1], 0, calculate_hash_prefetch_locality);
         hash += ( hash << 10 );
         hash ^= ( hash >> 6 );
     }
@@ -348,7 +350,8 @@ void build_move_list(const struct move_tree * move_node)
 
     for (; move_node->depth > 0; move_node = past_move(move_node->parent))
     {
-        __builtin_prefetch(&moves[past_move(move_node->parent)->depth - 1], 0, build_move_list_prefetch_locality);
+        prefetch(&moves[past_move(move_node->parent)->depth - 1], 0, build_move_list_prefetch_locality);
+
         moves[move_node->depth - 1] = move_node->move;
     }
 }
@@ -421,7 +424,7 @@ static void * process_jobs(void * generic_thread_id)
         move_index = queue_pop(&queues[thread_id]);
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
-
+        
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
             pthread_rwlock_rdlock(&move_tree_lock);
@@ -439,15 +442,16 @@ static void * process_jobs(void * generic_thread_id)
                 {
                     if (move(direction, &position, move_index, next_state))
                     {
-                        __builtin_prefetch(next_state, 0, calculate_hash_prefetch_locality);//prefetch for the hash function
+                        prefetch(next_state, 0, calculate_hash_prefetch_locality);//prefetch for the hash function
                         hash = calculate_hash(next_state);
 
                         pthread_testcancel();
 
                         if (!is_past_state(hash, next_state))
-                        {
-                            __builtin_prefetch(next_state, 0, calculate_score_prefetch_locality);//prefetches for score calculations
-                            __builtin_prefetch(end_state, 0, calculate_score_prefetch_locality);
+                        {   
+                            prefetch(next_state, 0, calculate_score_prefetch_locality);//prefetches for score calculations
+                            prefetch(end_state, 0, calculate_score_prefetch_locality);
+                            
                             score = calculate_score(next_state, end_state);
                             next_move_index = add_move(next_state, hash, move_index, &position, direction);
 
