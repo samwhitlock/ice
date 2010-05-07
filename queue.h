@@ -13,7 +13,7 @@ struct queue_node
 {
     unsigned int score;
 
-    const struct move_tree * move_node;
+    struct move_index move_index;
 };
 
 struct queue
@@ -26,9 +26,9 @@ struct queue
 void queue_initialize(struct queue * queue);
 void queue_finalize(struct queue * queue);
 
-const struct move_tree * queue_pop(struct queue * queue);
+struct move_index queue_pop(struct queue * queue);
 
-void queue_insert(struct queue * queue, unsigned int score, const struct move_tree * move_node);
+void queue_insert(struct queue * queue, unsigned int score, const struct move_index move_index);
 
 #endif
 

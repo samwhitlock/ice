@@ -41,22 +41,7 @@ int main(int argc, char * argv[])
     state_height = start_height;
     state_ones = start_ones;
 
-    if(find_path(start_state, end_state))
-    {
-        int index;
-
-        __builtin_prefetch(moves, 0, print_state_prefetch_locality);
-        for (index = 0; index < moves_length; ++index)
-        {
-            __builtin_prefetch(moves+1, 0, print_state_prefetch_locality);
-            printf("%u %u %c\n", moves[index].position.x, moves[index].position.y,
-                direction_char[moves[index].direction]);
-        }
-    }
-    else
-    {
-        puts("IMPOSSIBLE");
-    }
+    find_path(start_state, end_state);
 
     free(start_state);
     free(end_state);

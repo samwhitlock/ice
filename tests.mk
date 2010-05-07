@@ -3,7 +3,6 @@
 TEST_SOURCES = \
 	tests/test_states_equal.c \
 	tests/test_queue.c \
-	tests/test_move.c \
 	tests/test_calculate_score.c \
 	tests/test_read_pbm.c \
 	tests/test_solutions.c
