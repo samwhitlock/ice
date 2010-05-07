@@ -1,7 +1,7 @@
 # Makefile
 
 CFLAGS = -O2 -march=core2 -Wall
-CC = gcc
+CC = gcc-4.2
 
 EXTRA_CFLAGS = -pthread -std=c99 -I. -Wno-int-to-pointer-cast \
 	-Wno-pointer-to-int-cast
