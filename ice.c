@@ -297,7 +297,7 @@ static bool is_past_state(unsigned short hash, const uint32_t * state)
 
 static struct move_tree * add_move(const uint32_t * state, unsigned short hash,
     const struct move_tree * parent, const struct position * position, enum direction direction)
-{
+{//FIXME: This function has parallelism bugs. Run with spiral_16 to trigger often
     struct move_tree * move_node;
 
     int move_index = atomic_increment(move_tree_hash_write_length[hash]);
