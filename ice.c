@@ -10,7 +10,9 @@
 #include <alloca.h>
 
 #define __USE_XOPEN2K
+#define __USE_GNU
 
+#include <xlocale.h>
 #include <pthread.h>
 
 #ifdef __linux
@@ -366,18 +368,6 @@ static inline int y_position(int bitset_index, int bit_index)
     return (bitset_index * 32 + bit_index) / state_width;
 }
 
-static void terminate_all_threads(int thread_id)
-{
-    int id;
-
-    for (id = 0; id < thread_count; ++id)
-    {
-        if (thread_id == id) continue;
-        
-        pthread_cancel(threads[id]);
-    }
-}
-
 static void * process_jobs(void * generic_thread_id)
 {
     int thread_id = (int) generic_thread_id;
@@ -401,7 +391,6 @@ static void * process_jobs(void * generic_thread_id)
     {
         atomic_increment(threads_waiting);
 
-        pthread_testcancel();
         pthread_mutex_lock(&queue_mutexes[thread_id]);
 
         while (queues[thread_id].size == 0)
@@ -410,13 +399,23 @@ static void * process_jobs(void * generic_thread_id)
             {
                 pthread_mutex_lock(&terminate_lock);
 
-                terminate_all_threads(thread_id);
-                return NULL;
+                for (queue_index = 0; queue_index < thread_count; ++queue_index)
+                {
+                    if (queues[queue_index].size > 0) break;
+                }
+
+                if (queue_index == thread_count)
+                {
+                    puts("IMPOSSIBLE");
+                    exit(0);
+                }
+                else
+                {
+                    pthread_mutex_unlock(&terminate_lock);
+                }
             }
 
-            pthread_testcancel();
             pthread_cond_wait(&queue_conditions[thread_id], &queue_mutexes[thread_id]);
-            pthread_testcancel();
         }
 
         atomic_decrement(threads_waiting);
@@ -424,7 +423,7 @@ static void * process_jobs(void * generic_thread_id)
         move_index = queue_pop(&queues[thread_id]);
 
         pthread_mutex_unlock(&queue_mutexes[thread_id]);
-        
+
         for (bitset_index = 0; bitset_index < ints_per_state; ++bitset_index)
         {
             pthread_rwlock_rdlock(&move_tree_lock);
@@ -434,6 +433,8 @@ static void * process_jobs(void * generic_thread_id)
             while (bitset)
             {
                 bit_index = first_one(bitset) - 1;
+
+                if (bit_index < 0) break;
 
                 position.x = x_position(bitset_index, bit_index);
                 position.y = y_position(bitset_index, bit_index);
@@ -445,34 +446,36 @@ static void * process_jobs(void * generic_thread_id)
                         prefetch(next_state, 0, calculate_hash_prefetch_locality);//prefetch for the hash function
                         hash = calculate_hash(next_state);
 
-                        pthread_testcancel();
-
                         if (!is_past_state(hash, next_state))
-                        {   
+                        {
                             prefetch(next_state, 0, calculate_score_prefetch_locality);//prefetches for score calculations
                             prefetch(end_state, 0, calculate_score_prefetch_locality);
-                            
+
                             score = calculate_score(next_state, end_state);
                             next_move_index = add_move(next_state, hash, move_index, &position, direction);
 
                             if (score == 0)
                             {
+                                int index;
+
                                 /* Huzzah! We found it! */
                                 pthread_mutex_lock(&terminate_lock);
 
                                 found = true;
 
-                                terminate_all_threads(thread_id);
-
                                 build_move_list(past_move(next_move_index));
 
-                                return NULL;
+                                for (index = 0; index < moves_length; ++index)
+                                {
+                                    printf("%u %u %c\n", moves[index].position.x, moves[index].position.y,
+                                        direction_char[moves[index].direction]);
+                                }
+
+                                exit(0);
                             }
                             else
                             {
                                 queue_index = atomic_increment(jobs) % thread_count;
-
-                                pthread_testcancel();
 
                                 pthread_mutex_lock(&queue_mutexes[queue_index]);
                                 queue_insert(&queues[queue_index], score, next_move_index);
@@ -491,7 +494,7 @@ static void * process_jobs(void * generic_thread_id)
     return NULL;
 }
 
-bool find_path(const uint32_t * start, const uint32_t * end)
+void find_path(const uint32_t * start, const uint32_t * end)
 {
     int id;
     pthread_attr_t attributes;
@@ -509,15 +512,13 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     sysctl(mib, 2, &thread_count, &length, NULL, 0);
     #endif
 
+    --thread_count;
+
     ints_per_state = state_height * state_width / 32 +
         ((state_height * state_width % 32 == 0) ? 0 : 1);
     state_size = ints_per_state * 4;
 
-    if (states_equal(start, end))
-    {
-        moves_length = 0;
-        return true;
-    }
+    if (states_equal(start, end)) return;
 
     threads = alloca(thread_count * sizeof(pthread_t));
     queue_mutexes = alloca(thread_count * sizeof(pthread_mutex_t));
@@ -545,27 +546,13 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     pthread_attr_setschedparam(&attributes, &param);
     pthread_attr_setschedpolicy(&attributes, SCHED_RR);
 
-    for (id = 0; id < thread_count; ++id)
+    for (id = 1; id < thread_count; ++id)
     {
         pthread_create(&threads[id], &attributes, &process_jobs, (void *) id);
     }
 
-    pthread_attr_destroy(&attributes);
-
-    for (id = 0; id < thread_count; ++id)
-    {
-        pthread_join(threads[id], NULL);
-        pthread_cond_destroy(&queue_conditions[id]);
-        pthread_mutex_destroy(&queue_mutexes[id]);
-        queue_finalize(&queues[id]);
-    }
-
-    pthread_rwlock_destroy(&move_tree_lock);
-    pthread_mutex_destroy(&terminate_lock);
-
-    finalize_move_tree();
-
-    return found;
+    process_jobs((void *) 0);
 }
 
 // vim: et sts=4 ts=8 sw=4 fo=croql fdm=syntax
+

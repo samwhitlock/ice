@@ -67,7 +67,7 @@ extern int moves_length;
  *
  * @return True if a solution exists, false otherwise.
  */
-bool find_path(const uint32_t * start, const uint32_t * end);
+void find_path(const uint32_t * start, const uint32_t * end);
 
 /**
  * Compares two states.
