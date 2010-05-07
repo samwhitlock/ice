@@ -8,10 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <alloca.h>
-#include <xlocale.h>
 
 #define __USE_XOPEN2K
-#define __USE_GNU
 
 #include <pthread.h>
 
@@ -526,7 +524,7 @@ bool find_path(const uint32_t * start, const uint32_t * end)
     pthread_attr_init(&attributes);
 
     pthread_attr_setschedparam(&attributes, &param);
-    pthread_attr_setschedpolicy(&attributes, SCHED_BATCH);
+    pthread_attr_setschedpolicy(&attributes, SCHED_RR);
 
     for (id = 0; id < thread_count; ++id)
     {
