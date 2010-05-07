@@ -41,7 +41,7 @@
 #define atomic_decrement(variable) __sync_fetch_and_sub(&variable, 1)
 
 #define ONES_THRESHOLD -1//fool with this later
-#define HASH_MAX 512
+#define HASH_MAX 1024
 
 char direction_char[] = {
     [NORTH] = 'N',
@@ -258,14 +258,14 @@ unsigned short calculate_hash(const uint32_t * state)
 {
     int index;
 
-    uint32_t sum = 0;
+    uint32_t value = 0;
 
     for (index = 0; index < ints_per_state; ++index)
     {
-        sum += state[index];
+        value ^= (index % 2 == 0) ? state[index] : ~state[index];
     }
 
-    return (0xb7e4 ^ sum ^ sum >> 9 ^ sum >> 18 ^ sum >> 27) % HASH_MAX;
+    return (0xb7e4 ^ value ^ (value >> 8) ^ (value >> 16) ^ (value >> 24)) % HASH_MAX;
 }
 
 static inline struct move_tree * past_move(unsigned short hash, int index)
