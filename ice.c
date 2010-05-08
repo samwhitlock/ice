@@ -512,8 +512,6 @@ void find_path(const uint32_t * start, const uint32_t * end)
     sysctl(mib, 2, &thread_count, &length, NULL, 0);
     #endif
 
-    --thread_count;
-
     ints_per_state = state_height * state_width / 32 +
         ((state_height * state_width % 32 == 0) ? 0 : 1);
     state_size = ints_per_state * 4;
