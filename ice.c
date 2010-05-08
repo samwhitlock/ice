@@ -34,7 +34,7 @@
 #define prefetch __builtin_prefetch
 
 #define ONES_THRESHOLD -1//fool with this later
-#define HASH_MAX 1024
+#define HASH_MAX 8192
 
 char direction_char[] = {
     [NORTH] = 'N',
@@ -75,7 +75,7 @@ pthread_rwlock_t move_tree_lock;
 static void initialize_move_tree()
 {
     /* Initialize past states array */
-    move_tree_capacity = 1024 * 8;
+    move_tree_capacity = 1024 * 4;
     move_tree = malloc(move_tree_capacity * HASH_MAX * (sizeof(struct move_tree) + state_size));
     memset(move_tree_hash_length, 0, sizeof(move_tree_hash_length));
     memset(move_tree_hash_write_length, 0, sizeof(move_tree_hash_write_length));
