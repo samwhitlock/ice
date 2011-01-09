@@ -13,7 +13,7 @@ Notes
 Our solution will usually answer quickly (within 10 seconds), but every once
 in a while will take much longer. We were unable to solve this problem by the
 deadline, but we think it's because it is getting falsely mislead down
-incorrect paths by our calculate_score function.
+incorrect paths by our calculate\_score function.
 
 We ended up using a hack to get the threads to consistantly terminate by just
 calling exit. It seems that cancellation points are not created with Macs in
