@@ -1,7 +1,8 @@
 ICE Performance Contest
 =======================
-Michael Forney <mforney@berkeley.edu>
-Sam Whitlock <phynominal@gmail.com>
+Authors:
+* Michael Forney
+* Sam Whitlock
 
 Running
 -------
@@ -20,5 +21,5 @@ the necessary places, and we figured consistancy was better than quality in
 this case.
 
 Our tests no longer pass because of changes we made to the core of our program
-and the changes necessary to make this consistant.
+and the changes necessary to make this consistent.
 
