@@ -1,6 +1,7 @@
 ICE Performance Contest
 =======================
 Authors:
+
 * Michael Forney
 * Sam Whitlock
 
